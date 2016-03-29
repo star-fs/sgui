@@ -1,0 +1,13 @@
+#N canvas 239 145 336 189 10;
+#X obj 139 -2 sknb 75 75 0 127 0 0 empty empty empty 0 -8 0 8 -99865
+-258113 -1 0 1;
+#X obj 83 -24 shsl 130 15 0 127 0 0 empty empty empty -2 -8 0 10 -99865
+-3136 -1 0 1;
+#X obj 220 -23 svsl 15 100 0 127 0 0 empty empty empty 0 -9 0 10 -99865
+-260097 -1 0 1;
+#X obj 82 6 sbng 50 20 50 50 0 empty empty sbng 0 -6 0 10 -99865 -89565
+-1;
+#X obj 82 54 stgl 50 20 0 empty empty stgl 0 -6 0 10 -100465 -258689
+-1 0 80;
+#X text 85 88 alternative gui objects:;
+#X text 74 105 sknb \, svsl \, shsl \, sbng \, stgl;
