@@ -25,7 +25,7 @@ static void* sgui_new(t_symbol* s) {
 	  stgl_setup();
 	  skng_setup();
      post("sgui by star morin");
-     post("Contact: star@autspkr.org");
+     post("Contact: star@autospkr.org");
      post("sgui: version:  0.1 ");
      post("sgui: compiled: "__DATE__);
 	 post("");
