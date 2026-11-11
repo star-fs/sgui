@@ -84,6 +84,20 @@ local function col2sym(c)
     return string.format("#%06x", c & 0xffffff)
 end
 
+-- a color from PlugData's properties panel: {r, g, b} (0-255) or "#rrggbb"
+local function propcolor(c, dflt)
+    if type(c) == "table" then
+        local function byte(i) return math.floor(tonumber(c[i]) or 0) & 0xff end
+        return (byte(1) << 16) | (byte(2) << 8) | byte(3)
+    end
+    return hexcolor(c) or dflt
+end
+
+-- a name as the properties panel shows it: "empty" is blank
+local function shown(s)
+    return (s == "empty") and "" or s
+end
+
 local function name(a)
     if type(a) == "number" then return string.format("%d", math.floor(a)) end
     if type(a) ~= "string" or a == "" then return "empty" end
@@ -285,6 +299,67 @@ function stgl:in_1_label_font(atoms)
     self:repaint()
     self:save_args()
 end
+
+-- PlugData's properties panel: pdlua calls properties() to fill it in and
+-- the prop_* method of each field with the edited value.  This needs a
+-- pdlua with the properties API (PlugData newer than 0.9.3); older ones
+-- never call it, and the messages below still do the same.
+
+function stgl:properties(p)
+    p:new_frame("Dimensions", 1)
+    p:add_int("Width", "prop_width", self.w, MINSIZE, MAXSIZE)
+    p:add_int("Height", "prop_height", self.h, MINSIZE, MAXSIZE)
+
+    p:new_frame("General", 1)
+    p:add_float("Nonzero Value", "prop_nonzero", self.nonzero)
+    p:add_check("Init", "prop_init", self.isa & 1)
+
+    p:new_frame("Colors", 1)
+    p:add_color("Background", "prop_bcol", col2sym(self.bcol))
+    p:add_color("Foreground", "prop_fcol", col2sym(self.fcol))
+    p:add_color("Label", "prop_lcol", col2sym(self.lcol))
+
+    p:new_frame("Label", 1)
+    p:add_text("Text", "prop_label", shown(self.lab))
+    p:add_int("X Offset", "prop_ldx", self.ldx, -MAXSIZE, MAXSIZE)
+    p:add_int("Y Offset", "prop_ldy", self.ldy, -MAXSIZE, MAXSIZE)
+    p:add_int("Font Size", "prop_fontsize", self.fontsize, 4, 500)
+
+    p:new_frame("Communication", 1)
+    p:add_text("Send Symbol", "prop_send", shown(self.snd))
+    p:add_text("Receive Symbol", "prop_receive", shown(self.rcv))
+end
+
+function stgl:prop_width(v) self:in_1_size({v, self.h}) end
+function stgl:prop_height(v) self:in_1_size({self.w, v}) end
+function stgl:prop_nonzero(v) self:in_1_nonzero({v}) end
+
+function stgl:prop_init(v) self:in_1_init({v}) end
+
+function stgl:prop_bcol(c)
+    self.bcol = propcolor(c, self.bcol)
+    self:repaint()
+    self:save_args()
+end
+
+function stgl:prop_fcol(c)
+    self.fcol = propcolor(c, self.fcol)
+    self:repaint()
+    self:save_args()
+end
+
+function stgl:prop_lcol(c)
+    self.lcol = propcolor(c, self.lcol)
+    self:repaint()
+    self:save_args()
+end
+
+function stgl:prop_label(s) self:in_1_label({s}) end
+function stgl:prop_ldx(v) self:in_1_label_pos({v, self.ldy}) end
+function stgl:prop_ldy(v) self:in_1_label_pos({self.ldx, v}) end
+function stgl:prop_fontsize(v) self:in_1_label_font({self.fstyle, v}) end
+function stgl:prop_send(s) self:in_1_send({s}) end
+function stgl:prop_receive(s) self:in_1_receive({s}) end
 
 -- mouse (= stgl_click): a click toggles
 

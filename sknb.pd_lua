@@ -85,6 +85,20 @@ local function col2sym(c)
     return string.format("#%06x", c & 0xffffff)
 end
 
+-- a color from PlugData's properties panel: {r, g, b} (0-255) or "#rrggbb"
+local function propcolor(c, dflt)
+    if type(c) == "table" then
+        local function byte(i) return math.floor(tonumber(c[i]) or 0) & 0xff end
+        return (byte(1) << 16) | (byte(2) << 8) | byte(3)
+    end
+    return hexcolor(c) or dflt
+end
+
+-- a name as the properties panel shows it: "empty" is blank
+local function shown(s)
+    return (s == "empty") and "" or s
+end
+
 local function name(a)
     if type(a) == "number" then return string.format("%d", math.floor(a)) end
     if type(a) ~= "string" or a == "" then return "empty" end
@@ -375,6 +389,74 @@ function sknb:in_1_label_font(atoms)
     self.fontsize = math.max(4, tonumber(atoms[2]) or self.fontsize)
     self:changed()
 end
+
+-- PlugData's properties panel: pdlua calls properties() to fill it in and
+-- the prop_* method of each field with the edited value.  This needs a
+-- pdlua with the properties API (PlugData newer than 0.9.3); older ones
+-- never call it, and the messages below still do the same.
+
+function sknb:properties(p)
+    p:new_frame("Dimensions", 1)
+    p:add_int("Size", "prop_size", self.size, MINSIZE, MAXSIZE)
+
+    p:new_frame("General", 1)
+    p:add_float("Minimum", "prop_min", self.min)
+    p:add_float("Maximum", "prop_max", self.max)
+    p:add_check("Logarithmic", "prop_log", self.lin0_log1)
+    p:add_check("Steady on Click", "prop_steady", self.steady)
+    p:add_check("Init", "prop_init", self.isa & 1)
+
+    p:new_frame("Colors", 1)
+    p:add_color("Background", "prop_bcol", col2sym(self.bcol))
+    p:add_color("Foreground", "prop_fcol", col2sym(self.fcol))
+    p:add_color("Label", "prop_lcol", col2sym(self.lcol))
+
+    p:new_frame("Label", 1)
+    p:add_text("Text", "prop_label", shown(self.lab))
+    p:add_int("X Offset", "prop_ldx", self.ldx, -MAXSIZE, MAXSIZE)
+    p:add_int("Y Offset", "prop_ldy", self.ldy, -MAXSIZE, MAXSIZE)
+    p:add_int("Font Size", "prop_fontsize", self.fontsize, 4, 500)
+
+    p:new_frame("Communication", 1)
+    p:add_text("Send Symbol", "prop_send", shown(self.snd))
+    p:add_text("Receive Symbol", "prop_receive", shown(self.rcv))
+end
+
+function sknb:prop_size(v) self:in_1_size({v}) end
+function sknb:prop_min(v) self:in_1_range({v, self.max}) end
+function sknb:prop_max(v) self:in_1_range({self.min, v}) end
+function sknb:prop_steady(v) self:in_1_steady({v}) end
+
+function sknb:prop_log(v)
+    if v ~= 0 then self:in_1_log() else self:in_1_lin() end
+end
+
+function sknb:prop_init(v) self:in_1_init({v}) end
+
+function sknb:prop_bcol(c)
+    self.bcol = propcolor(c, self.bcol)
+    self:repaint()
+    self:save_args()
+end
+
+function sknb:prop_fcol(c)
+    self.fcol = propcolor(c, self.fcol)
+    self:repaint()
+    self:save_args()
+end
+
+function sknb:prop_lcol(c)
+    self.lcol = propcolor(c, self.lcol)
+    self:repaint()
+    self:save_args()
+end
+
+function sknb:prop_label(s) self:in_1_label({s}) end
+function sknb:prop_ldx(v) self:in_1_label_pos({v, self.ldy}) end
+function sknb:prop_ldy(v) self:in_1_label_pos({self.ldx, v}) end
+function sknb:prop_fontsize(v) self:in_1_label_font({self.fstyle, v}) end
+function sknb:prop_send(s) self:in_1_send({s}) end
+function sknb:prop_receive(s) self:in_1_receive({s}) end
 
 -- mouse (= sknb_click / sknb_motion): vertical drag turns the knob,
 -- 1 pixel per step; without "steady" a click jumps to the pointer height
