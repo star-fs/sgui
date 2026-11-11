@@ -6,8 +6,8 @@ sgui is a **self-contained** pd external: it vendors the IEM-GUI helper
 machinery (ported from pd-extended 0.44's `g_all_guis.c`) so it builds
 against only the **public** `m_pd.h`. No pd internal headers
 (`g_canvas.h`, `g_all_guis.h`, `s_stuff.h`, `t_tk.h`, ...) are needed, and
-it runs on any 0.5x-generation pd — vanilla, pd-extended (Purr Data), or
-PlugData.
+it runs on vanilla pd 0.5x and on PlugData (see *PlugData* below for what
+renders there).
 
 ## Objects
 
@@ -34,6 +34,38 @@ effect:
   `vsl_aliased` / `hsl_aliased` / `tgl_aliased`.
 
 The `s`-prefixed names always work and never collide.
+
+### PlugData
+
+PlugData has no Tk GUI, so the Tk drawing code sgui uses (`sys_vgui`) draws
+nothing there. Instead PlugData draws any object whose *class* is named
+`vsl`/`hsl`/`tgl` with its own native widget, reads the object's memory as
+pd's modern `t_slider`/`t_toggle`, and calls pd's internal `iemgui_*`
+functions on it. sgui's structs are therefore laid out to match modern pd
+(including the `x_private` block those functions dereference), so in
+PlugData:
+
+* `svsl`/`shsl`/`stgl` (and `vsl`/`hsl`/`tgl` while shadowed) appear as
+  PlugData's native sliders and toggle. Dragging, clicking, the inspector,
+  sending and receiving, and saving all work.
+* `sbng` and `sknb` are drawn by pdlua versions, `sbng.pd_lua` and
+  `sknb.pd_lua`. PlugData bundles pdlua and draws its GUI objects natively. They take the same
+  arguments, messages and save format as the C objects, so patches move
+  freely between vanilla and PlugData. pd's native loader runs before
+  pdlua's, so the C `sbng.pd_linux`/`sknb.pd_linux` must *not* be on
+  PlugData's path (use `make install-plugdata`, below). The all-in-one `sgui`
+  library detects PlugData and leaves `sbng`/`sknb` to the Lua versions.
+  Differences from the C objects:
+  * labels are cut off at the object's edge, because pdlua clips drawing to
+    the object box;
+  * there's no properties dialog and no `delta`/`pos` messages;
+  * the knob has no shift-drag fine tuning (pdlua doesn't report modifier
+    keys);
+  * with init on, the initial output happens just after creation rather
+    than on loadbang.
+
+Purr Data loads all objects, but its JavaScript GUI cannot run the Tk drawing
+commands, so they do not render there.
 
 ## Requirements
 
@@ -84,6 +116,19 @@ make install
 
 copies the built externals and the `help/*.pd` files to `~/.pd/sgui/`.
 
+### Installing for PlugData
+
+```sh
+make install-plugdata
+```
+
+installs into `~/Documents/plugdata/Externals/sgui/` (override with
+`make install-plugdata PLUGDATA_DIR=...`): every external except
+`sbng.pd_linux` and `sknb.pd_linux`, plus `sbng.pd_lua`, `sknb.pd_lua` and the
+help files. PlugData only searches `Externals/` itself, not its subfolders,
+so add `~/Documents/plugdata/Externals/sgui` under Settings → Paths (or put
+`[declare -path sgui]` in the patch).
+
 ## Usage
 
 Add the sgui directory (or the individual `.pd_linux` files) to pd's path,
@@ -97,6 +142,12 @@ built-in widgets:
 [sbng  50 20 50 50 0 empty empty sbng 0 -6 0 10 -99865 -89565 -1]
 [sknb  75 75 0 127 0 0 empty empty empty 0 -8 0 8 -99865 -89565 -262144 50 1]
 ```
+
+Colours can be given either as old-style integers (preset index, or the
+negative packed RGB that pd < 0.51 saved) or as `#rrggbb` symbols, both as
+creation arguments and in the `color` message. Patches are saved with
+`#rrggbb` colours, the same format pd 0.51+ and PlugData use (so pd older than
+0.51 cannot read them back).
 
 Each object posts a one-line `sgui: <name> loaded` banner to the console when
 its library is first loaded, which is a quick way to confirm sgui (and not a
@@ -119,9 +170,12 @@ patch file so pd has it queued before it opens the file.)
 
 * `sgui.h` — private header: public-`m_pd.h` compat declarations + the vendored
   IEM-GUI API.
-* `sgui_iem.c` — vendored IEM-GUI helper functions (pd-extended 0.44).
+* `sgui_iem.c` — vendored IEM-GUI helper functions (pd-extended 0.44), with
+  the `t_iemgui` layout matched to modern pd for PlugData.
 * `sgui.c` — all-in-one entry point (`sgui_setup`).
 * `sbng.c` `svsl.c` `shsl.c` `stgl.c` `sknb.c` — the objects.
+* `sbng.pd_lua`, `sknb.pd_lua` — pdlua versions of the bang and knob (for
+  PlugData).
 * `help/*.pd` — help/patch files.
 
 ## License

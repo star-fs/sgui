@@ -238,11 +238,11 @@ static void sknb_getrect(t_gobj *z, t_glist *glist,
 static void sknb_save(t_gobj *z, t_binbuf *b)
 {
     t_sknb *x = (t_sknb *)z;
-    int bflcol[3];
+    t_symbol *bflcol[3];
     t_symbol *srl[3];
 
     iemgui_save(&x->x_gui, srl, bflcol);
-    binbuf_addv(b, "ssiisiiffiisssiiiiiiiii", gensym("#X"),gensym("obj"),
+    binbuf_addv(b, "ssiisiiffiisssiiiisssii", gensym("#X"),gensym("obj"),
         (t_int)x->x_gui.x_obj.te_xpix, (t_int)x->x_gui.x_obj.te_ypix,
         gensym("sknb"),
         x->x_gui.x_h, x->x_gui.x_h,
@@ -309,15 +309,15 @@ static void sknb_properties(t_gobj *z, t_glist *owner)
 
     iemgui_properties(&x->x_gui, srl);
 
-    sprintf(buf, "pdtk_iemgui_dialog %%s KNOB \
-        --------dimensions(pix)(pix):-------- %d %d NONE: %d %d height: \
-        -----------output-range:----------- %g left: %g right: %g \
+    sprintf(buf, "pdtk_iemgui_dialog %%s Knob \
+        --------dimensions(pix)(pix):-------- %d %d Size: %d %d {} \
+        {Output Range} %g Lower: %g Upper: %g \
         %d lin log %d %d empty %d \
         %s %s \
         %s %d %d \
         %d %d \
-        %d %d %d\n",
-        x->x_gui.x_w, IEM_SL_MINSIZE, x->x_gui.x_h, IEM_GUI_MINSIZE,
+        #%06x #%06x #%06x\n",
+        x->x_gui.x_h, IEM_GUI_MINSIZE, x->x_gui.x_h, IEM_GUI_MINSIZE,
         x->x_min, x->x_max, 0.0,/*no_schedule*/
         x->x_lin0_log1, x->x_gui.x_isa.x_loadinit, x->x_steady, -1,/*no multi, but iem-characteristic*/
         srl[0]->s_name, srl[1]->s_name,
@@ -347,7 +347,6 @@ static void sknb_dialog(t_sknb *x, t_symbol *s, int argc, t_atom *argv)
 {
     t_symbol *srl[3];
     int w = (int)atom_getintarg(0, argc, argv);
-    int h = (int)atom_getintarg(1, argc, argv);
     double min = (double)atom_getfloatarg(2, argc, argv);
     double max = (double)atom_getfloatarg(3, argc, argv);
     int lilo = (int)atom_getintarg(4, argc, argv);
@@ -362,8 +361,9 @@ static void sknb_dialog(t_sknb *x, t_symbol *s, int argc, t_atom *argv)
             x->x_steady = 0;
 
     sr_flags = iemgui_dialog(&x->x_gui, srl, argc, argv);
+        /* the knob is square: "Size" (w) sets it; h is a hidden copy */
     x->x_gui.x_h = iemgui_clip_size(w);
-    sknb_check_height(x, h);
+    sknb_check_height(x, x->x_gui.x_h);
     sknb_check_minmax(x, min, max);
     (*x->x_gui.x_draw)(x, x->x_gui.x_glist, IEM_GUI_DRAW_MODE_CONFIG);
     (*x->x_gui.x_draw)(x, x->x_gui.x_glist, IEM_GUI_DRAW_MODE_IO + sr_flags);
@@ -468,9 +468,14 @@ static void sknb_float(t_sknb *x, t_floatarg f)
 
 static void sknb_size(t_sknb *x, t_symbol *s, int ac, t_atom *av)
 {
+        /* keep the knob's value: x_val is in pixels, so rescale it */
+    double v = x->x_lin0_log1 ?
+        x->x_min*exp(x->x_k*(double)(x->x_val)*0.01) :
+        (double)(x->x_val)*0.01*x->x_k + x->x_min;
     x->x_gui.x_h = iemgui_clip_size((int)atom_getintarg(0, ac, av));
-    if(ac > 1)
-        sknb_check_height(x, (int)atom_getintarg(1, ac, av));
+    sknb_check_height(x, (ac > 1) ?
+        (int)atom_getintarg(1, ac, av) : x->x_gui.x_h);
+    sknb_set(x, v);
     iemgui_size((void *)x, &x->x_gui);
 }
 
@@ -526,9 +531,9 @@ static void sknb_steady(t_sknb *x, t_floatarg f)
     x->x_steady = (f==0.0)?0:1;
 }
 
-static void sknb_loadbang(t_sknb *x)
+static void sknb_loadbang(t_sknb *x, t_floatarg action)
 {
-    if(!sys_noloadbang && x->x_gui.x_isa.x_loadinit)
+    if(action == LB_LOAD && !sys_noloadbang && x->x_gui.x_isa.x_loadinit)
     {
         (*x->x_gui.x_draw)(x, x->x_gui.x_glist, IEM_GUI_DRAW_MODE_UPDATE);
         sknb_bang(x);
@@ -539,11 +544,13 @@ static void *sknb_new(t_symbol *s, int argc, t_atom *argv)
 {
     t_sknb *x = (t_sknb *)pd_new(sknb_class);
     int bflcol[]={-262144, -1, -1};
+    t_atom *colargs = 0;
     int w=IEM_KNOB_DEFAULTSIZE, h=IEM_KNOB_DEFAULTSIZE;
     int lilo=0, ldx=0, ldy=-8;
     int fs=8, v=0, steady=1;
     double min=0.0, max=(double)(IEM_SL_DEFAULTSIZE-1);
 
+    sgui_iemgui_init(&x->x_gui);
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
 
@@ -554,8 +561,8 @@ static void *sknb_new(t_symbol *s, int argc, t_atom *argv)
        &&(IS_A_SYMBOL(argv,7)||IS_A_FLOAT(argv,7))
        &&(IS_A_SYMBOL(argv,8)||IS_A_FLOAT(argv,8))
        &&IS_A_FLOAT(argv,9)&&IS_A_FLOAT(argv,10)
-       &&IS_A_FLOAT(argv,11)&&IS_A_FLOAT(argv,12)&&IS_A_FLOAT(argv,13)
-       &&IS_A_FLOAT(argv,14)&&IS_A_FLOAT(argv,15)&&IS_A_FLOAT(argv,16))
+       &&IS_A_FLOAT(argv,11)&&IS_A_FLOAT(argv,12)&&IS_A_COLOR(argv,13)
+       &&IS_A_COLOR(argv,14)&&IS_A_COLOR(argv,15)&&IS_A_FLOAT(argv,16))
     {
         w = (int)atom_getintarg(0, argc, argv);
         h = (int)atom_getintarg(1, argc, argv);
@@ -568,9 +575,7 @@ static void *sknb_new(t_symbol *s, int argc, t_atom *argv)
         ldy = (int)atom_getintarg(10, argc, argv);
         iem_inttofstyle(&x->x_gui.x_fsf, atom_getintarg(11, argc, argv));
         fs = (int)atom_getintarg(12, argc, argv);
-        bflcol[0] = (int)atom_getintarg(13, argc, argv);
-        bflcol[1] = (int)atom_getintarg(14, argc, argv);
-        bflcol[2] = (int)atom_getintarg(15, argc, argv);
+        colargs = argv + 13;
         v = (int)atom_getintarg(16, argc, argv);
     }
     else iemgui_new_getnames(&x->x_gui, 6, 0);
@@ -611,6 +616,8 @@ static void *sknb_new(t_symbol *s, int argc, t_atom *argv)
     sknb_check_height(x, w);
     sknb_check_minmax(x, min, max);
     iemgui_all_colfromload(&x->x_gui, bflcol);
+    if (colargs)
+        iemgui_all_loadcolors(&x->x_gui, colargs, colargs+1, colargs+2);
     iemgui_verify_snd_ne_rcv(&x->x_gui);
     outlet_new(&x->x_gui.x_obj, &s_float);
     return (x);
@@ -625,6 +632,7 @@ static void sknb_free(t_sknb *x)
     if(x->x_gui.x_fsf.x_rcv_able)
         pd_unbind(&x->x_gui.x_obj.ob_pd, x->x_gui.x_rcv);
     gfxstub_deleteforkey(x);
+    sgui_iemgui_free(&x->x_gui);
 }
 
 SGUI_EXPORT void sknb_setup(void)
@@ -640,7 +648,7 @@ SGUI_EXPORT void sknb_setup(void)
                     A_FLOAT, A_FLOAT, 0);
     class_addmethod(sknb_class, (t_method)sknb_dialog, gensym("dialog"),
                     A_GIMME, 0);
-    class_addmethod(sknb_class, (t_method)sknb_loadbang, gensym("loadbang"), 0);
+    class_addmethod(sknb_class, (t_method)sknb_loadbang, gensym("loadbang"), A_DEFFLOAT, 0);
     class_addmethod(sknb_class, (t_method)sknb_set, gensym("set"), A_FLOAT, 0);
     class_addmethod(sknb_class, (t_method)sknb_size, gensym("size"), A_GIMME, 0);
     class_addmethod(sknb_class, (t_method)sknb_delta, gensym("delta"), A_GIMME, 0);

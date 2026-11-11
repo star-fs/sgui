@@ -24,6 +24,8 @@ typedef struct _svsl
     double   x_min;
     double   x_max;
     double   x_k;
+    t_float  x_fval;         /* x_fval/x_orientation: t_slider layout, */
+    t_iem_orientation x_orientation; /* read by PlugData's native slider */
 } t_svsl;
 
 
@@ -208,11 +210,11 @@ static void svsl_getrect(t_gobj *z, t_glist *glist,
 static void svsl_save(t_gobj *z, t_binbuf *b)
 {
     t_svsl *x = (t_svsl *)z;
-    int bflcol[3];
+    t_symbol *bflcol[3];
     t_symbol *srl[3];
 
     iemgui_save(&x->x_gui, srl, bflcol);
-    binbuf_addv(b, "ssiisiiffiisssiiiiiiiii", gensym("#X"),gensym("obj"),
+    binbuf_addv(b, "ssiisiiffiisssiiiisssii", gensym("#X"),gensym("obj"),
                 (int)x->x_gui.x_obj.te_xpix, (int)x->x_gui.x_obj.te_ypix,
                 gensym("svsl"), x->x_gui.x_w, x->x_gui.x_h,
                 (float)x->x_min, (float)x->x_max,
@@ -285,7 +287,7 @@ static void svsl_properties(t_gobj *z, t_glist *owner)
             %s %s \
             %s %d %d \
             %d %d \
-            %d %d %d\n",
+            #%06x #%06x #%06x\n",
             x->x_gui.x_w, IEM_GUI_MINSIZE, x->x_gui.x_h, IEM_SL_MINSIZE,
             x->x_min, x->x_max, 0,/*no_schedule*/
             x->x_lin0_log1, x->x_gui.x_isa.x_loadinit, x->x_steady, -1,/*no multi, but iem-characteristic*/
@@ -494,9 +496,9 @@ static void svsl_steady(t_svsl *x, t_floatarg f)
     x->x_steady = (f==0.0)?0:1;
 }
 
-static void svsl_loadbang(t_svsl *x)
+static void svsl_loadbang(t_svsl *x, t_floatarg action)
 {
-    if(!sys_noloadbang && x->x_gui.x_isa.x_loadinit)
+    if(action == LB_LOAD && !sys_noloadbang && x->x_gui.x_isa.x_loadinit)
     {
         (*x->x_gui.x_draw)(x, x->x_gui.x_glist, IEM_GUI_DRAW_MODE_UPDATE);
         svsl_bang(x);
@@ -507,11 +509,14 @@ static void *svsl_new(t_symbol *s, int argc, t_atom *argv)
 {
     t_svsl *x = (t_svsl *)pd_new(svsl_class);
     int bflcol[]={-262144, -1, -1};
+    t_atom *colargs = 0;
     int w=IEM_GUI_DEFAULTSIZE, h=IEM_SL_DEFAULTSIZE;
     int lilo=0, ldx=0, ldy=-9;
     int fs=10, v=0, steady=1;
     double min=0.0, max=(double)(IEM_SL_DEFAULTSIZE-1);
 
+    sgui_iemgui_init(&x->x_gui);
+    x->x_orientation = vertical;
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
 
@@ -522,8 +527,8 @@ static void *svsl_new(t_symbol *s, int argc, t_atom *argv)
        &&(IS_A_SYMBOL(argv,7)||IS_A_FLOAT(argv,7))
        &&(IS_A_SYMBOL(argv,8)||IS_A_FLOAT(argv,8))
        &&IS_A_FLOAT(argv,9)&&IS_A_FLOAT(argv,10)
-       &&IS_A_FLOAT(argv,11)&&IS_A_FLOAT(argv,12)&&IS_A_FLOAT(argv,13)
-       &&IS_A_FLOAT(argv,14)&&IS_A_FLOAT(argv,15)&&IS_A_FLOAT(argv,16))
+       &&IS_A_FLOAT(argv,11)&&IS_A_FLOAT(argv,12)&&IS_A_COLOR(argv,13)
+       &&IS_A_COLOR(argv,14)&&IS_A_COLOR(argv,15)&&IS_A_FLOAT(argv,16))
     {
         w = (int)atom_getintarg(0, argc, argv);
         h = (int)atom_getintarg(1, argc, argv);
@@ -536,9 +541,7 @@ static void *svsl_new(t_symbol *s, int argc, t_atom *argv)
         ldy = (int)atom_getintarg(10, argc, argv);
         iem_inttofstyle(&x->x_gui.x_fsf, atom_getintarg(11, argc, argv));
         fs = (int)atom_getintarg(12, argc, argv);
-        bflcol[0] = (int)atom_getintarg(13, argc, argv);
-        bflcol[1] = (int)atom_getintarg(14, argc, argv);
-        bflcol[2] = (int)atom_getintarg(15, argc, argv);
+        colargs = argv + 13;
         v = (int)atom_getintarg(16, argc, argv);
     }
     else iemgui_new_getnames(&x->x_gui, 6, 0);
@@ -573,6 +576,8 @@ static void *svsl_new(t_symbol *s, int argc, t_atom *argv)
     svsl_check_height(x, h);
     svsl_check_minmax(x, min, max);
     iemgui_all_colfromload(&x->x_gui, bflcol);
+    if (colargs)
+        iemgui_all_loadcolors(&x->x_gui, colargs, colargs+1, colargs+2);
     iemgui_verify_snd_ne_rcv(&x->x_gui);
     outlet_new(&x->x_gui.x_obj, &s_float);
     return (x);
@@ -583,6 +588,7 @@ static void svsl_free(t_svsl *x)
     if(x->x_gui.x_fsf.x_rcv_able)
         pd_unbind(&x->x_gui.x_obj.ob_pd, x->x_gui.x_rcv);
     gfxstub_deleteforkey(x);
+    sgui_iemgui_free(&x->x_gui);
 }
 
 SGUI_EXPORT void svsl_setup(void)
@@ -599,7 +605,7 @@ SGUI_EXPORT void svsl_setup(void)
                     A_FLOAT, A_FLOAT, 0);
     class_addmethod(svsl_class, (t_method)svsl_dialog, gensym("dialog"),
                     A_GIMME, 0);
-    class_addmethod(svsl_class, (t_method)svsl_loadbang, gensym("loadbang"), 0);
+    class_addmethod(svsl_class, (t_method)svsl_loadbang, gensym("loadbang"), A_DEFFLOAT, 0);
     class_addmethod(svsl_class, (t_method)svsl_set, gensym("set"), A_FLOAT, 0);
     class_addmethod(svsl_class, (t_method)svsl_size, gensym("size"), A_GIMME, 0);
     class_addmethod(svsl_class, (t_method)svsl_delta, gensym("delta"), A_GIMME, 0);

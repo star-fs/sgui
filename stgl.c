@@ -17,8 +17,8 @@ static t_class *stgl_class;
 typedef struct _stgl
 {
     t_iemgui x_gui;
-    float    x_on;
-    float    x_nonzero;
+    t_float  x_on;
+    t_float  x_nonzero;
 } t_stgl;
 
 
@@ -180,11 +180,11 @@ static void stgl_getrect(t_gobj *z, t_glist *glist, int *xp1, int *yp1, int *xp2
 static void stgl_save(t_gobj *z, t_binbuf *b)
 {
     t_stgl *x = (t_stgl *)z;
-    int bflcol[3];
+    t_symbol *bflcol[3];
     t_symbol *srl[3];
 
     iemgui_save(&x->x_gui, srl, bflcol);
-    binbuf_addv(b, "ssiisiiisssiiiiiiiff", gensym("#X"),gensym("obj"),
+    binbuf_addv(b, "ssiisiiisssiiiisssff", gensym("#X"),gensym("obj"),
                 (int)x->x_gui.x_obj.te_xpix,
                 (int)x->x_gui.x_obj.te_ypix,
                 gensym("stgl"), x->x_gui.x_w, x->x_gui.x_h,
@@ -210,7 +210,7 @@ static void stgl_properties(t_gobj *z, t_glist *owner)
             %s %s \
             %s %d %d \
             %d %d \
-            %d %d %d\n",
+            #%06x #%06x #%06x\n",
             x->x_gui.x_w, IEM_GUI_MINSIZE,
             x->x_gui.x_h, IEM_GUI_MINSIZE,
             x->x_nonzero, 1.0,/*non_zero-schedule*/
@@ -290,9 +290,9 @@ static void stgl_fout(t_stgl *x, t_floatarg f)
         pd_float(x->x_gui.x_snd->s_thing, x->x_on);
 }
 
-static void stgl_loadbang(t_stgl *x)
+static void stgl_loadbang(t_stgl *x, t_floatarg action)
 {
-    if(!sys_noloadbang && x->x_gui.x_isa.x_loadinit)
+    if(action == LB_LOAD && !sys_noloadbang && x->x_gui.x_isa.x_loadinit)
         stgl_fout(x, (float)x->x_on);
 }
 
@@ -342,12 +342,14 @@ static void *stgl_new(t_symbol *s, int argc, t_atom *argv)
 {
     t_stgl *x = (t_stgl *)pd_new(stgl_class);
     int bflcol[]={-262144, -1, -1};
+    t_atom *colargs = 0;
     int w=IEM_GUI_DEFAULTSIZE;
     int h=IEM_GUI_DEFAULTSIZE;
     int ldx=17, ldy=7;
     int fs=10;
     float on=0.0, nonzero=1.0;
 
+    sgui_iemgui_init(&x->x_gui);
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
 
@@ -358,8 +360,8 @@ static void *stgl_new(t_symbol *s, int argc, t_atom *argv)
        &&(IS_A_SYMBOL(argv,4)||IS_A_FLOAT(argv,4))
        &&(IS_A_SYMBOL(argv,5)||IS_A_FLOAT(argv,5))
        &&IS_A_FLOAT(argv,6)&&IS_A_FLOAT(argv,7)
-       &&IS_A_FLOAT(argv,8)&&IS_A_FLOAT(argv,9)&&IS_A_FLOAT(argv,10)
-       &&IS_A_FLOAT(argv,11)&&IS_A_FLOAT(argv,12)&&IS_A_FLOAT(argv,13))
+       &&IS_A_FLOAT(argv,8)&&IS_A_FLOAT(argv,9)&&IS_A_COLOR(argv,10)
+       &&IS_A_COLOR(argv,11)&&IS_A_COLOR(argv,12)&&IS_A_FLOAT(argv,13))
     {
         w = (int)atom_getintarg(0, argc, argv);
         h = (int)atom_getintarg(1, argc, argv);
@@ -369,9 +371,7 @@ static void *stgl_new(t_symbol *s, int argc, t_atom *argv)
         ldy = (int)atom_getintarg(7, argc, argv);
         iem_inttofstyle(&x->x_gui.x_fsf, atom_getintarg(8, argc, argv));
         fs = (int)atom_getintarg(9, argc, argv);
-        bflcol[0] = (int)atom_getintarg(10, argc, argv);
-        bflcol[1] = (int)atom_getintarg(11, argc, argv);
-        bflcol[2] = (int)atom_getintarg(12, argc, argv);
+        colargs = argv + 10;
         on = (float)atom_getfloatarg(13, argc, argv);
     }
     else iemgui_new_getnames(&x->x_gui, 2, 0);
@@ -406,6 +406,8 @@ static void *stgl_new(t_symbol *s, int argc, t_atom *argv)
     x->x_gui.x_w = w;
     x->x_gui.x_h = h;
     iemgui_all_colfromload(&x->x_gui, bflcol);
+    if (colargs)
+        iemgui_all_loadcolors(&x->x_gui, colargs, colargs+1, colargs+2);
     iemgui_verify_snd_ne_rcv(&x->x_gui);
     outlet_new(&x->x_gui.x_obj, &s_float);
     return (x);
@@ -416,6 +418,7 @@ static void stgl_ff(t_stgl *x)
     if(x->x_gui.x_fsf.x_rcv_able)
         pd_unbind(&x->x_gui.x_obj.ob_pd, x->x_gui.x_rcv);
     gfxstub_deleteforkey(x);
+    sgui_iemgui_free(&x->x_gui);
 }
 
 SGUI_EXPORT void stgl_setup(void)
@@ -430,7 +433,7 @@ SGUI_EXPORT void stgl_setup(void)
                     A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, 0);
     class_addmethod(stgl_class, (t_method)stgl_dialog, gensym("dialog"),
                     A_GIMME, 0);
-    class_addmethod(stgl_class, (t_method)stgl_loadbang, gensym("loadbang"), 0);
+    class_addmethod(stgl_class, (t_method)stgl_loadbang, gensym("loadbang"), A_DEFFLOAT, 0);
     class_addmethod(stgl_class, (t_method)stgl_set, gensym("set"), A_FLOAT, 0);
     class_addmethod(stgl_class, (t_method)stgl_size, gensym("size"), A_GIMME, 0);
     class_addmethod(stgl_class, (t_method)stgl_delta, gensym("delta"), A_GIMME, 0);

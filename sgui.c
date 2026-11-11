@@ -13,14 +13,35 @@
  */
 
 #include "sgui.h"
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+
+    /* PlugData exports plugdata_* functions from its own binary */
+static int sgui_in_plugdata(void)
+{
+#ifndef _WIN32
+    return (dlsym(RTLD_DEFAULT, "plugdata_forward_message") != 0);
+#else
+    return (0);
+#endif
+}
 
 SGUI_EXPORT void sgui_setup(void)
 {
-    sbng_setup();
+        /* PlugData draws svsl/shsl/stgl with its own sliders and toggle,
+        but has no widget for sbng/sknb and can't run their Tk drawing;
+        leave those names free for the pdlua versions (sbng.pd_lua,
+        sknb.pd_lua), which it draws natively */
+    int plugdata = sgui_in_plugdata();
+    if (plugdata)
+        post("sgui: PlugData detected, sbng/sknb come from *.pd_lua");
+    else sbng_setup();
     svsl_setup();
     shsl_setup();
     stgl_setup();
-    sknb_setup();
+    if (!plugdata)
+        sknb_setup();
 
     post("sgui by star morin");
     post("Contact: star@autospkr.org");

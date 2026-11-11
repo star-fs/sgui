@@ -1,0 +1,67 @@
+sgui - replacement IEM-style GUI objects for Pure Data
+=======================================================
+
+sgui is derived from files in the Pure Data distribution and from the
+IEM-GUI object set. The applicable licenses are reproduced below.
+
+
+1. Pure Data (base)
+--------------------
+
+This software is copyrighted by Miller Puckette and others.  The following
+terms (the "Standard Improved BSD License") apply to all files associated with
+the software unless explicitly disclaimed in individual files:
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above
+   copyright notice, this list of conditions and the following
+   disclaimer in the documentation and/or other materials provided
+   with the distribution.
+3. The name of the author may not be used to endorse or promote
+   products derived from this software without specific prior
+   written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGE.
+
+
+2. IEM-GUI objects
+-------------------
+
+The IEM-GUI helper machinery vendored here (sgui_iem.c, and the widget
+skeletons in sbng.c / svsl.c / shsl.c / stgl.c / sknb.c) is derived from
+g_7_guis.c / g_all_guis.c:
+
+   Copyright (c) 1997-1999 Miller Puckette.
+   g_7_guis.c written by Thomas Musil (c) IEM KUG Graz Austria 2000-2001.
+   thanks to Miller Puckette, Guenther Geiger and Krzystof Czaja.
+
+The vendored helper functions were ported from pd-extended 0.44
+src/g_all_guis.c (zrnsm mirror) and are covered by the same Standard
+Improved BSD License as Pure Data.
+
+
+3. sgui objects
+---------------
+
+The sgui object implementations (sbng, svsl, shsl, stgl, sknb) and this
+packaging are:
+
+   (c) Star Morin, star@autospkr.org
+
+Released under the same Standard Improved BSD License as above.

@@ -185,11 +185,11 @@ static void sbng_getrect(t_gobj *z, t_glist *glist,
 static void sbng_save(t_gobj *z, t_binbuf *b)
 {
     t_sbng *x = (t_sbng *)z;
-    int bflcol[3];
+    t_symbol *bflcol[3];
     t_symbol *srl[3];
 
     iemgui_save(&x->x_gui, srl, bflcol);
-    binbuf_addv(b, "ssiisiiiiisssiiiiiii", gensym("#X"),gensym("obj"),
+    binbuf_addv(b, "ssiisiiiiisssiiiisss", gensym("#X"),gensym("obj"),
                 (int)x->x_gui.x_obj.te_xpix, (int)x->x_gui.x_obj.te_ypix,
                 gensym("sbng"), x->x_gui.x_w, x->x_gui.x_h,
                 x->x_flashtime_hold, x->x_flashtime_break,
@@ -226,14 +226,14 @@ static void sbng_properties(t_gobj *z, t_glist *owner)
     t_symbol *srl[3];
 
     iemgui_properties(&x->x_gui, srl);
-    sprintf(buf, "pdtk_iemgui_dialog %%s |sbng| \
-            --------dimensions(pix)(pix):-------- %d %d width: %d %d height: \
-            --------flash-time(ms)(ms):--------- %d intrrpt: %d hold: %d\
+    sprintf(buf, "pdtk_iemgui_dialog %%s Bang \
+            --------dimensions(pix)(pix):-------- %d %d Width: %d %d Height: \
+            {Flash Time (ms)} %d Interrupt: %d Hold: %d\
             %d empty empty %d %d empty %d \
             %s %s \
             %s %d %d \
             %d %d \
-            %d %d %d\n",
+            #%06x #%06x #%06x\n",
             x->x_gui.x_w, IEM_SL_MINSIZE, x->x_gui.x_h, IEM_GUI_MINSIZE,
             x->x_flashtime_break, x->x_flashtime_hold, 2,/*min_max_schedule+clip*/
             -1, x->x_gui.x_isa.x_loadinit, -1, -1,/*no linlog, no multi*/
@@ -359,9 +359,9 @@ static void sbng_list(t_sbng *x, t_symbol *s, int ac, t_atom *av)
 static void sbng_anything(t_sbng *x, t_symbol *s, int argc, t_atom *argv)
 {sbng_bang2(x);}
 
-static void sbng_loadbang(t_sbng *x)
+static void sbng_loadbang(t_sbng *x, t_floatarg action)
 {
-    if(!sys_noloadbang && x->x_gui.x_isa.x_loadinit)
+    if(action == LB_LOAD && !sys_noloadbang && x->x_gui.x_isa.x_loadinit)
     {
         sbng_set(x);
         sbng_bout2(x);
@@ -430,6 +430,7 @@ static void *sbng_new(t_symbol *s, int argc, t_atom *argv)
 {
     t_sbng *x = (t_sbng *)pd_new(sbng_class);
     int bflcol[]={-262144, -1, -1};
+    t_atom *colargs = 0;
     int w=IEM_GUI_DEFAULTSIZE;
     int h=IEM_GUI_DEFAULTSIZE;
     int ldx=17, ldy=7;
@@ -437,6 +438,7 @@ static void *sbng_new(t_symbol *s, int argc, t_atom *argv)
     int ftbreak=IEM_BNG_DEFAULTBREAKFLASHTIME,
         fthold=IEM_BNG_DEFAULTHOLDFLASHTIME;
 
+    sgui_iemgui_init(&x->x_gui);
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
 
@@ -448,8 +450,8 @@ static void *sbng_new(t_symbol *s, int argc, t_atom *argv)
        &&(IS_A_SYMBOL(argv,6)||IS_A_FLOAT(argv,6))
        &&(IS_A_SYMBOL(argv,7)||IS_A_FLOAT(argv,7))
        &&IS_A_FLOAT(argv,8)&&IS_A_FLOAT(argv,9)
-       &&IS_A_FLOAT(argv,10)&&IS_A_FLOAT(argv,11)&&IS_A_FLOAT(argv,12)
-       &&IS_A_FLOAT(argv,13)&&IS_A_FLOAT(argv,14))
+       &&IS_A_FLOAT(argv,10)&&IS_A_FLOAT(argv,11)&&IS_A_COLOR(argv,12)
+       &&IS_A_COLOR(argv,13)&&IS_A_COLOR(argv,14))
     {
         w = (int)atom_getintarg(0, argc, argv);
         h = (int)atom_getintarg(1, argc, argv);
@@ -461,9 +463,7 @@ static void *sbng_new(t_symbol *s, int argc, t_atom *argv)
         ldy = (int)atom_getintarg(9, argc, argv);
         iem_inttofstyle(&x->x_gui.x_fsf, atom_getintarg(10, argc, argv));
         fs = (int)atom_getintarg(11, argc, argv);
-        bflcol[0] = (int)atom_getintarg(12, argc, argv);
-        bflcol[1] = (int)atom_getintarg(13, argc, argv);
-        bflcol[2] = (int)atom_getintarg(14, argc, argv);
+        colargs = argv + 12;
     }
     else iemgui_new_getnames(&x->x_gui, 4, 0);
 
@@ -494,6 +494,8 @@ static void *sbng_new(t_symbol *s, int argc, t_atom *argv)
     x->x_gui.x_h = h;
     sbng_check_minmax(x, ftbreak, fthold);
     iemgui_all_colfromload(&x->x_gui, bflcol);
+    if (colargs)
+        iemgui_all_loadcolors(&x->x_gui, colargs, colargs+1, colargs+2);
     x->x_gui.x_isa.x_locked = 0;
     iemgui_verify_snd_ne_rcv(&x->x_gui);
     x->x_clock_hld = clock_new(x, (t_method)sbng_tick_hld);
@@ -511,6 +513,7 @@ static void sbng_free(t_sbng *x)
     clock_free(x->x_clock_brk);
     clock_free(x->x_clock_hld);
     gfxstub_deleteforkey(x);
+    sgui_iemgui_free(&x->x_gui);
 }
 
 SGUI_EXPORT void sbng_setup(void)
@@ -529,7 +532,7 @@ SGUI_EXPORT void sbng_setup(void)
     class_addmethod(sbng_class, (t_method)sbng_motion, gensym("motion"),
                     A_FLOAT, A_FLOAT, 0);
     class_addmethod(sbng_class, (t_method)sbng_dialog, gensym("dialog"), A_GIMME, 0);
-    class_addmethod(sbng_class, (t_method)sbng_loadbang, gensym("loadbang"), 0);
+    class_addmethod(sbng_class, (t_method)sbng_loadbang, gensym("loadbang"), A_DEFFLOAT, 0);
     class_addmethod(sbng_class, (t_method)sbng_set, gensym("set"), A_FLOAT, 0);
     class_addmethod(sbng_class, (t_method)sbng_size, gensym("size"), A_GIMME, 0);
     class_addmethod(sbng_class, (t_method)sbng_delta, gensym("delta"), A_GIMME, 0);
