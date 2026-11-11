@@ -29,21 +29,20 @@ static int sgui_in_plugdata(void)
 
 SGUI_EXPORT void sgui_setup(void)
 {
-        /* PlugData draws svsl/shsl with its own native sliders; it can't
-        run the Tk drawing of sbng/sknb, and would draw stgl (class "tgl")
-        as its own square X toggle.  Leave those names free for the pdlua
-        versions (sbng/stgl/sknb.pd_lua), which it draws natively. */
-    int plugdata = sgui_in_plugdata();
+        /* PlugData has no Tk, so it can't run sgui's drawing: it shows
+        sbng/sknb as plain boxes and draws stgl/svsl/shsl (classes "tgl",
+        "vsl", "hsl") with its own toggle and sliders, which look different.
+        Leave all the names free for the pdlua versions (*.pd_lua), which
+        it draws natively. */
     sgui_banner();
-    if (plugdata)
-        post("sgui: PlugData detected, sbng/stgl/sknb come from *.pd_lua");
-    else sbng_setup();
+    if (sgui_in_plugdata())
+    {
+        post("sgui: PlugData detected, the objects come from *.pd_lua");
+        return;
+    }
+    sbng_setup();
     svsl_setup();
     shsl_setup();
-    if (!plugdata)
-    {
-        stgl_setup();
-        sknb_setup();
-    }
-
+    stgl_setup();
+    sknb_setup();
 }

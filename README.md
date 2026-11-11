@@ -45,21 +45,20 @@ functions on it. sgui's structs are therefore laid out to match modern pd
 (including the `x_private` block those functions dereference), so in
 PlugData:
 
-* `svsl`/`shsl` (and `vsl`/`hsl` while shadowed) appear as PlugData's native
-  sliders. Dragging, clicking, the inspector, sending and receiving, and
-  saving all work.
-* `sbng`, `stgl` and `sknb` are drawn by pdlua versions, `sbng.pd_lua`,
-  `stgl.pd_lua` and `sknb.pd_lua` (PlugData's native toggle is a square X,
-  not sgui's look). In edit mode they can be resized with the mouse: the
-  bang and toggle in width and height independently, the knob staying
-  square; the new size is saved. In PlugData, `tgl` stays PlugData's own
-  toggle, since only the C stgl shadows it. PlugData bundles pdlua and draws its GUI objects natively. They take the same
+* All five objects are drawn by pdlua versions (`sbng.pd_lua`,
+  `svsl.pd_lua`, `shsl.pd_lua`, `stgl.pd_lua`, `sknb.pd_lua`), so they look
+  as in vanilla: PlugData's own toggle is a square X and its sliders a thin
+  value line, where sgui's are an inset rectangle and a solid bar. In edit
+  mode they can be resized with the mouse (the knob stays square; sliders
+  and the knob keep their value); the new size is saved. In PlugData,
+  `vsl`/`hsl`/`tgl` stay PlugData's own widgets, since only the C objects
+  shadow them. (The C structs still match modern pd's layout, so the C
+  objects don't crash PlugData if they do get loaded there.) PlugData bundles pdlua and draws its GUI objects natively. They take the same
   arguments, messages and save format as the C objects, so patches move
   freely between vanilla and PlugData. pd's native loader runs before
-  pdlua's, so the C `sbng`/`stgl`/`sknb.pd_linux` must *not* be on
+  pdlua's, so the per-object C `.pd_linux` files must *not* be on
   PlugData's path (use `make install-plugdata`, below). The all-in-one `sgui`
-  library detects PlugData and leaves `sbng`/`stgl`/`sknb` to the Lua
-  versions.
+  library detects PlugData and leaves all the objects to the Lua versions.
   Differences from the C objects:
   * labels are cut off at the object's edge, because pdlua clips drawing to
     the object box;
@@ -136,8 +135,8 @@ make install-plugdata
 ```
 
 installs into `~/Documents/plugdata/Externals/sgui/` (override with
-`make install-plugdata PLUGDATA_DIR=...`): every external except
-`sbng`/`stgl`/`sknb.pd_linux`, plus their `.pd_lua` versions and the help
+`make install-plugdata PLUGDATA_DIR=...`): the all-in-one `sgui` library
+(which then only prints the banner), the `.pd_lua` objects and the help
 files. PlugData only searches `Externals/` itself, not its subfolders,
 so add `~/Documents/plugdata/Externals/sgui` under Settings → Paths (or put
 `[declare -path sgui]` in the patch).
@@ -187,8 +186,8 @@ patch file so pd has it queued before it opens the file.)
   the `t_iemgui` layout matched to modern pd for PlugData.
 * `sgui.c` — all-in-one entry point (`sgui_setup`).
 * `sbng.c` `svsl.c` `shsl.c` `stgl.c` `sknb.c` — the objects.
-* `sbng.pd_lua`, `stgl.pd_lua`, `sknb.pd_lua` — pdlua versions of the bang,
-  toggle and knob (for PlugData).
+* `*.pd_lua` — pdlua versions of the objects (for PlugData); `svsl.pd_lua`
+  and `shsl.pd_lua` are the same code apart from their orientation settings.
 * `help/*.pd` — help/patch files.
 
 ## License

@@ -31,18 +31,45 @@ typedef struct _svsl
 
 /* widget helper functions */
 
+/* the value bar is inset SL_BORDER pixels in the background box, so a
+   border of background color shows around it; x_val (0 .. (length-1)*100)
+   is scaled to the inner length */
+#define SL_BORDER 1
+
+static int svsl_barlen(t_svsl *x)
+{
+    int inner = x->x_gui.x_h - 2*SL_BORDER;
+    if (inner <= 0 || x->x_gui.x_h <= 1)
+        return (0);
+    return ((int)((double)x->x_val * inner / (100.0 * (x->x_gui.x_h - 1)) + 0.5));
+}
+
+    /* returns the bar's length: 0 means hide it (Tk would still draw a
+    zero-size rectangle as a 1-pixel line) */
+static int svsl_barcoords(t_svsl *x, int xpos, int ypos,
+    int *x1, int *y1, int *x2, int *y2)
+{
+    int p = svsl_barlen(x);
+    *x1 = xpos + SL_BORDER;
+    *x2 = xpos + x->x_gui.x_w - SL_BORDER;
+    *y2 = ypos + x->x_gui.x_h - SL_BORDER;
+    *y1 = *y2 - p;
+    return (p);
+}
+
+
 static void svsl_draw_update(t_gobj *client, t_glist *glist)
 {
     t_svsl *x = (t_svsl *)client;
     if (glist_isvisible(glist))
     {
-        int r = text_ypix(&x->x_gui.x_obj, glist) + x->x_gui.x_h - (x->x_val + 50)/100;
-        int xpos=text_xpix(&x->x_gui.x_obj, glist);
-        int ypos=text_ypix(&x->x_gui.x_obj, glist);
-
+        int x1, y1, x2, y2;
+        int p = svsl_barcoords(x, text_xpix(&x->x_gui.x_obj, glist),
+            text_ypix(&x->x_gui.x_obj, glist), &x1, &y1, &x2, &y2);
         sys_vgui(".x%lx.c coords %lxVSL %d %d %d %d\n",
-                 glist_getcanvas(glist), x, xpos, r,
-                 xpos + x->x_gui.x_w, ypos + x->x_gui.x_h);
+                 glist_getcanvas(glist), x, x1, y1, x2, y2);
+        sys_vgui(".x%lx.c itemconfigure %lxVSL -state %s\n",
+                 glist_getcanvas(glist), x, p ? "normal" : "hidden");
     }
 }
 
@@ -50,16 +77,16 @@ static void svsl_draw_new(t_svsl *x, t_glist *glist)
 {
     int xpos=text_xpix(&x->x_gui.x_obj, glist);
     int ypos=text_ypix(&x->x_gui.x_obj, glist);
-    int r = ypos + x->x_gui.x_h - (x->x_val + 50)/100;
+    int x1, y1, x2, y2, p;
     t_canvas *canvas=glist_getcanvas(glist);
 
     sys_vgui(".x%lx.c create rectangle %d %d %d %d -fill #%6.6x -tags %lxBASE\n",
              canvas, xpos, ypos,
              xpos + x->x_gui.x_w, ypos + x->x_gui.x_h,
              x->x_gui.x_bcol, x);
-    sys_vgui(".x%lx.c create rectangle %d %d %d %d -fill #%6.6x -tags %lxVSL\n",
-             canvas, xpos, r,
-             xpos + x->x_gui.x_w, ypos + x->x_gui.x_h, x->x_gui.x_fcol, x);
+    p = svsl_barcoords(x, xpos, ypos, &x1, &y1, &x2, &y2);
+    sys_vgui(".x%lx.c create rectangle %d %d %d %d -fill #%6.6x -outline {} -state %s -tags %lxVSL\n",
+             canvas, x1, y1, x2, y2, x->x_gui.x_fcol, p ? "normal" : "hidden", x);
     sys_vgui(".x%lx.c create text %d %d -text {%s} -anchor w \
              -font {{%s} %d %s} -fill #%6.6x -tags %lxLABEL\n",
              canvas, xpos+x->x_gui.x_ldx, ypos+x->x_gui.x_ldy,
@@ -84,16 +111,18 @@ static void svsl_draw_move(t_svsl *x, t_glist *glist)
 {
     int xpos=text_xpix(&x->x_gui.x_obj, glist);
     int ypos=text_ypix(&x->x_gui.x_obj, glist);
-    int r = ypos + x->x_gui.x_h - (x->x_val + 50)/100;
+    int x1, y1, x2, y2, p;
     t_canvas *canvas=glist_getcanvas(glist);
 
     sys_vgui(".x%lx.c coords %lxBASE %d %d %d %d\n",
              canvas, x,
              xpos, ypos,
              xpos + x->x_gui.x_w, ypos + x->x_gui.x_h);
+    p = svsl_barcoords(x, xpos, ypos, &x1, &y1, &x2, &y2);
     sys_vgui(".x%lx.c coords %lxVSL %d %d %d %d\n",
-             canvas, x, xpos, r,
-             xpos + x->x_gui.x_w, ypos + x->x_gui.x_h);
+             canvas, x, x1, y1, x2, y2);
+    sys_vgui(".x%lx.c itemconfigure %lxVSL -state %s\n",
+             canvas, x, p ? "normal" : "hidden");
     sys_vgui(".x%lx.c coords %lxLABEL %d %d\n",
              canvas, x, xpos+x->x_gui.x_ldx, ypos+x->x_gui.x_ldy);
     if(!x->x_gui.x_fsf.x_snd_able)
