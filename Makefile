@@ -12,7 +12,7 @@
 #                    shadows the built-in "vsl", shsl "hsl", stgl "tgl").
 #
 #   make            build all
-#   make install    install to ~/.pd/sgui (plus help files)
+#   make install    install to ~/Documents/Pd/externals/sgui (plus help)
 #   make install-plugdata
 #                   install to PlugData's externals folder, with the pdlua
 #                   versions (sbng.pd_lua, sknb.pd_lua) in place of
@@ -88,10 +88,13 @@ sgui.$(EXT): $(OBJECTS)
 %.o: %.c sgui.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+# pd's standard per-user externals folder; add it to pd's search paths
+# (Preferences -> Path) so the objects load on demand
+INSTALL_DIR = $(HOME)/Documents/Pd/externals/sgui
 install: $(TARGETS)
-	install -d $(HOME)/.pd/sgui
-	install -m 644 $(TARGETS) $(HOME)/.pd/sgui
-	install -m 644 help/*.pd $(HOME)/.pd/sgui
+	install -d $(INSTALL_DIR)
+	install -m 644 $(TARGETS) $(INSTALL_DIR)
+	install -m 644 help/*.pd $(INSTALL_DIR)
 
 # PlugData draws pdlua GUIs natively but not the Tk-drawn C bang and knob,
 # and pd's native loader runs before pdlua's, so leave those out here

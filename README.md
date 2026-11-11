@@ -114,7 +114,9 @@ On other platforms `make` picks the right suffix/flags automatically:
 make install
 ```
 
-copies the built externals and the `help/*.pd` files to `~/.pd/sgui/`.
+copies the built externals and the `help/*.pd` files to
+`~/Documents/Pd/externals/sgui/` (override with `make install INSTALL_DIR=...`).
+Add that folder under Preferences → Path so pd finds the objects.
 
 ### Installing for PlugData
 
