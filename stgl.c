@@ -355,7 +355,31 @@ static void *stgl_new(t_symbol *s, int argc, t_atom *argv)
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
 
-    if(((argc == 14)||(argc == 15))&&IS_A_FLOAT(argv,0)
+    /* pd's own toggle, which stgl replaces as "tgl": one size, then the
+       arguments below from <init> on; told apart by its send name where
+       stgl has its init flag */
+    if(((argc == 13)||(argc == 14))&&IS_A_FLOAT(argv,0)
+       &&IS_A_FLOAT(argv,1)
+       &&IS_A_SYMBOL(argv,2)
+       &&(IS_A_SYMBOL(argv,3)||IS_A_FLOAT(argv,3))
+       &&(IS_A_SYMBOL(argv,4)||IS_A_FLOAT(argv,4))
+       &&IS_A_FLOAT(argv,5)&&IS_A_FLOAT(argv,6)
+       &&IS_A_FLOAT(argv,7)&&IS_A_FLOAT(argv,8)&&IS_A_COLOR(argv,9)
+       &&IS_A_COLOR(argv,10)&&IS_A_COLOR(argv,11)&&IS_A_FLOAT(argv,12))
+    {
+        w = h = (int)atom_getintarg(0, argc, argv);
+        iem_inttosymargs(&x->x_gui.x_isa, atom_getintarg(1, argc, argv));
+        iemgui_new_getnames(&x->x_gui, 2, argv);
+        ldx = (int)atom_getintarg(5, argc, argv);
+        ldy = (int)atom_getintarg(6, argc, argv);
+        iem_inttofstyle(&x->x_gui.x_fsf, atom_getintarg(7, argc, argv));
+        fs = (int)atom_getintarg(8, argc, argv);
+        colargs = argv + 9;
+        on = (float)atom_getfloatarg(12, argc, argv);
+        if((argc == 14)&&IS_A_FLOAT(argv,13))
+            nonzero = (float)atom_getfloatarg(13, argc, argv);
+    }
+    else if(((argc == 14)||(argc == 15))&&IS_A_FLOAT(argv,0)
        &&IS_A_FLOAT(argv,1)
        &&IS_A_FLOAT(argv,2)
        &&(IS_A_SYMBOL(argv,3)||IS_A_FLOAT(argv,3))
