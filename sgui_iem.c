@@ -107,8 +107,9 @@ void sgui_banner(void)
         CLASS_PD, 0);
     pd_bind(pd_new(marker_class), s);
 
-    post("sgui by star morin");
-    post("Contact: star@autospkr.org");
+    post("");
+    post("");
+    post("sgui (c) 2009-2026 star morin");
     post("sgui: version: 0.2");
     post("sgui: compiled: " __DATE__);
     post("");
