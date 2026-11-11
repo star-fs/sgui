@@ -1,5 +1,9 @@
 # sgui
 
+![sgui objects in PlugData](sgui_plugdata.png)
+
+![sgui objects in vanilla pd](sgui_pd.png)
+
 Replacement IEM-style GUI objects for the Pure Data environment.
 
 sgui is a **self-contained** pd external: it vendors the IEM-GUI helper
