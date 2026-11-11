@@ -637,6 +637,7 @@ static void sknb_free(t_sknb *x)
 
 SGUI_EXPORT void sknb_setup(void)
 {
+    sgui_banner();
     post("sgui: sknb loaded");
     sknb_class = class_new(gensym("sknb"), (t_newmethod)sknb_new,
                               (t_method)sknb_free, sizeof(t_sknb), 0, A_GIMME, 0);

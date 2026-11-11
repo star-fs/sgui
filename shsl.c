@@ -600,6 +600,7 @@ static void shsl_free(t_shsl *x)
 
 SGUI_EXPORT void shsl_setup(void)
 {
+    sgui_banner();
     post("sgui: shsl loaded");
     shsl_class = class_new(gensym("hsl"), (t_newmethod)shsl_new,
                               (t_method)shsl_free, sizeof(t_shsl), 0, A_GIMME, 0);

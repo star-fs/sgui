@@ -221,7 +221,8 @@ function sknb:changed()
     self:save_args()
 end
 
-function sknb:set_value(f)
+-- f -> val (pixels * 100), without redrawing
+function sknb:store_value(f)
     if self.reverse then
         f = clip(f, self.max, self.min)
     else
@@ -235,6 +236,10 @@ function sknb:set_value(f)
     end
     self.val = math.floor(100.0 * g + 0.49999)
     self.pos = self.val
+end
+
+function sknb:set_value(f)
+    self:store_value(f)
     self:changed()
 end
 
@@ -284,6 +289,23 @@ function sknb:in_1_size(atoms)
     self:check_k()
     self:set_size(self.size, self.size)
     self:set_value(v)
+end
+
+-- PlugData resizes a pdlua object (edit mode, dragging its edge) by
+-- changing its size directly and repainting; pick the new size up here,
+-- keeping the knob square and its value, so it is drawn and saved
+function sknb:sync_size()
+    local w, h = self:get_size()
+    w, h = math.floor(w), math.floor(h)
+    if w == self.size and h == self.size then return end
+    local s = (w ~= self.size) and w or h
+    s = clip(s, MINSIZE, MAXSIZE)
+    local v = self:value()
+    self.size = s
+    self:check_k()
+    if w ~= s or h ~= s then self:set_size(s, s) end
+    self:store_value(v)
+    self:save_args()
 end
 
 function sknb:in_1_range(atoms)
@@ -402,6 +424,7 @@ local function rgb(c)
 end
 
 function sknb:paint(g)
+    self:sync_size()
     local s = self.size
     local r, gr, b = rgb(self.bcol)
     g:set_color(r, gr, b, 1)

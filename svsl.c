@@ -593,6 +593,7 @@ static void svsl_free(t_svsl *x)
 
 SGUI_EXPORT void svsl_setup(void)
 {
+    sgui_banner();
     post("sgui: svsl loaded");
     svsl_class = class_new(gensym("vsl"), (t_newmethod)svsl_new,
                               (t_method)svsl_free, sizeof(t_svsl), 0, A_GIMME, 0);

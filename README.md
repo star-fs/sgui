@@ -13,10 +13,10 @@ renders there).
 
 | name   | what it is                          | also usable as |
 |--------|-------------------------------------|----------------|
-| `sbng` | resizable "smart" bang              | `sbng`         |
+| `sbng` | resizable "smart" bang: an outline box whose inset rectangle flashes | `sbng` |
 | `svsl` | vertical slider                     | `svsl`, and **shadows pd's built-in `vsl`** |
 | `shsl` | horizontal slider                   | `shsl`, and **shadows pd's built-in `hsl`** |
-| `stgl` | toggle switch                       | `stgl`, and **shadows pd's built-in `tgl`** |
+| `stgl` | toggle: an outline box whose inset rectangle fills when on | `stgl`, and **shadows pd's built-in `tgl`** |
 | `sknb` | rotary knob                         | `sknb`         |
 
 ### Shadowing
@@ -45,16 +45,21 @@ functions on it. sgui's structs are therefore laid out to match modern pd
 (including the `x_private` block those functions dereference), so in
 PlugData:
 
-* `svsl`/`shsl`/`stgl` (and `vsl`/`hsl`/`tgl` while shadowed) appear as
-  PlugData's native sliders and toggle. Dragging, clicking, the inspector,
-  sending and receiving, and saving all work.
-* `sbng` and `sknb` are drawn by pdlua versions, `sbng.pd_lua` and
-  `sknb.pd_lua`. PlugData bundles pdlua and draws its GUI objects natively. They take the same
+* `svsl`/`shsl` (and `vsl`/`hsl` while shadowed) appear as PlugData's native
+  sliders. Dragging, clicking, the inspector, sending and receiving, and
+  saving all work.
+* `sbng`, `stgl` and `sknb` are drawn by pdlua versions, `sbng.pd_lua`,
+  `stgl.pd_lua` and `sknb.pd_lua` (PlugData's native toggle is a square X,
+  not sgui's look). In edit mode they can be resized with the mouse: the
+  bang and toggle in width and height independently, the knob staying
+  square; the new size is saved. In PlugData, `tgl` stays PlugData's own
+  toggle, since only the C stgl shadows it. PlugData bundles pdlua and draws its GUI objects natively. They take the same
   arguments, messages and save format as the C objects, so patches move
   freely between vanilla and PlugData. pd's native loader runs before
-  pdlua's, so the C `sbng.pd_linux`/`sknb.pd_linux` must *not* be on
+  pdlua's, so the C `sbng`/`stgl`/`sknb.pd_linux` must *not* be on
   PlugData's path (use `make install-plugdata`, below). The all-in-one `sgui`
-  library detects PlugData and leaves `sbng`/`sknb` to the Lua versions.
+  library detects PlugData and leaves `sbng`/`stgl`/`sknb` to the Lua
+  versions.
   Differences from the C objects:
   * labels are cut off at the object's edge, because pdlua clips drawing to
     the object box;
@@ -66,6 +71,12 @@ PlugData:
 
 Purr Data loads all objects, but its JavaScript GUI cannot run the Tk drawing
 commands, so they do not render there.
+
+### Size
+
+`sbng` and `stgl` have independent width and height (creation arguments,
+properties dialog, or the `size <width> [<height>]` message; one argument
+makes them square). `sknb` is always square.
 
 ## Requirements
 
@@ -126,8 +137,8 @@ make install-plugdata
 
 installs into `~/Documents/plugdata/Externals/sgui/` (override with
 `make install-plugdata PLUGDATA_DIR=...`): every external except
-`sbng.pd_linux` and `sknb.pd_linux`, plus `sbng.pd_lua`, `sknb.pd_lua` and the
-help files. PlugData only searches `Externals/` itself, not its subfolders,
+`sbng`/`stgl`/`sknb.pd_linux`, plus their `.pd_lua` versions and the help
+files. PlugData only searches `Externals/` itself, not its subfolders,
 so add `~/Documents/plugdata/Externals/sgui` under Settings → Paths (or put
 `[declare -path sgui]` in the patch).
 
@@ -176,8 +187,8 @@ patch file so pd has it queued before it opens the file.)
   the `t_iemgui` layout matched to modern pd for PlugData.
 * `sgui.c` — all-in-one entry point (`sgui_setup`).
 * `sbng.c` `svsl.c` `shsl.c` `stgl.c` `sknb.c` — the objects.
-* `sbng.pd_lua`, `sknb.pd_lua` — pdlua versions of the bang and knob (for
-  PlugData).
+* `sbng.pd_lua`, `stgl.pd_lua`, `sknb.pd_lua` — pdlua versions of the bang,
+  toggle and knob (for PlugData).
 * `help/*.pd` — help/patch files.
 
 ## License

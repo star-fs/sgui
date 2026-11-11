@@ -92,6 +92,28 @@ t_symbol *iemgui_raute2dollar(t_symbol *s)
     return(gensym(buf));
 }
 
+    /* The title/copyright banner, posted once per pd session by whichever
+    sgui external loads first: the all-in-one library or any one of the
+    per-object files.  Those are separate shared objects, so a static flag
+    can't tell; instead the first one binds a marker object to a symbol
+    that the others find bound. */
+void sgui_banner(void)
+{
+    static t_class *marker_class;
+    t_symbol *s = gensym("#sgui_banner");
+    if (s->s_thing)
+        return;
+    marker_class = class_new(gensym("sgui_banner"), 0, 0, sizeof(t_pd),
+        CLASS_PD, 0);
+    pd_bind(pd_new(marker_class), s);
+
+    post("sgui by star morin");
+    post("Contact: star@autospkr.org");
+    post("sgui: version: 0.2");
+    post("sgui: compiled: " __DATE__);
+    post("");
+}
+
 void sgui_iemgui_init(t_iemgui *iemgui)
 {
     iemgui->x_private = (t_iemgui_private *)getbytes(sizeof(t_iemgui_private));

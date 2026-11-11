@@ -251,14 +251,29 @@ function sbng:in_1_set()
     self:flash()
 end
 
+-- "size w [h]": one argument makes it square
 function sbng:in_1_size(atoms)
-    local s = tonumber(atoms[1])
-    if not s then return end
-    self.w = clip(math.floor(s), MINSIZE, MAXSIZE)
-    self.h = self.w
+    local w = tonumber(atoms[1])
+    if not w then return end
+    self.w = clip(math.floor(w), MINSIZE, MAXSIZE)
+    self.h = clip(math.floor(tonumber(atoms[2]) or self.w), MINSIZE, MAXSIZE)
     self:set_size(self.w, self.h)
     self:repaint()
     self:save_args()
+end
+
+-- PlugData resizes a pdlua object (edit mode, dragging its edge) by
+-- changing its size directly and repainting; pick the new size up here so
+-- it is drawn and saved
+function sbng:sync_size()
+    local w, h = self:get_size()
+    w, h = math.floor(w), math.floor(h)
+    if w ~= self.w or h ~= self.h then
+        self.w = clip(w, MINSIZE, MAXSIZE)
+        self.h = clip(h, MINSIZE, MAXSIZE)
+        if self.w ~= w or self.h ~= h then self:set_size(self.w, self.h) end
+        self:save_args()
+    end
 end
 
 function sbng:in_1_flashtime(atoms)
@@ -322,18 +337,27 @@ function sbng:mouse_down(x, y)
     self:bout(true)
 end
 
--- drawing (= sbng_draw_new): a rectangle, foreground color while flashed
+-- drawing (= sbng_draw_new): the outline box with a rectangle inset in it,
+-- which takes the foreground color while flashed
 
 local function rgb(c)
     return (c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff
 end
 
 function sbng:paint(g)
-    local r, gr, b = rgb(self.flashed and self.fcol or self.bcol)
+    self:sync_size()
+    local w, h = self.w, self.h
+    local r, gr, b = rgb(self.bcol)
     g:set_color(r, gr, b, 1)
-    g:fill_rect(0, 0, self.w, self.h)
+    g:fill_rect(0, 0, w, h)
     g:set_color(0, 0, 0, 1)
-    g:stroke_rect(0, 0, self.w, self.h, 1)
+    g:stroke_rect(0, 0, w, h, 1)
+
+    r, gr, b = rgb(self.flashed and self.fcol or self.bcol)
+    g:set_color(r, gr, b, 1)
+    g:fill_rect(2, 2, w - 4, h - 4)
+    g:set_color(0, 0, 0, 1)
+    g:stroke_rect(2, 2, w - 4, h - 4, 1)
 
     if self.lab ~= "empty" then
         r, gr, b = rgb(self.lcol)

@@ -272,6 +272,7 @@ EXTERN void iemgui_properties(t_iemgui *iemgui, t_symbol **srl);
 EXTERN int iemgui_dialog(t_iemgui *iemgui, t_symbol **srl, int argc,
     t_atom *argv);
 
+EXTERN void sgui_banner(void);
 EXTERN void sgui_iemgui_init(t_iemgui *iemgui);
 EXTERN void sgui_iemgui_free(t_iemgui *iemgui);
 

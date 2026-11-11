@@ -15,8 +15,7 @@
 #   make install    install to ~/Documents/Pd/externals/sgui (plus help)
 #   make install-plugdata
 #                   install to PlugData's externals folder, with the pdlua
-#                   versions (sbng.pd_lua, sknb.pd_lua) in place of
-#                   sbng.$(EXT) and sknb.$(EXT)
+#                   versions (sbng/stgl/sknb.pd_lua) in place of the C ones
 #   make clean
 #
 # m_pd.h is found in this order:
@@ -96,10 +95,11 @@ install: $(TARGETS)
 	install -m 644 $(TARGETS) $(INSTALL_DIR)
 	install -m 644 help/*.pd $(INSTALL_DIR)
 
-# PlugData draws pdlua GUIs natively but not the Tk-drawn C bang and knob,
-# and pd's native loader runs before pdlua's, so leave those out here
+# PlugData draws pdlua GUIs natively but not the Tk-drawn C bang and knob
+# (and draws the C toggle as its own X toggle); pd's native loader runs
+# before pdlua's, so leave those out here
 PLUGDATA_DIR = $(HOME)/Documents/plugdata/Externals/sgui
-PLUGDATA_LUA = sbng sknb
+PLUGDATA_LUA = sbng stgl sknb
 install-plugdata: $(TARGETS)
 	install -d $(PLUGDATA_DIR)
 	install -m 644 $(filter-out $(addsuffix .$(EXT),$(PLUGDATA_LUA)),$(TARGETS)) \

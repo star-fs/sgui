@@ -296,10 +296,12 @@ static void stgl_loadbang(t_stgl *x, t_floatarg action)
         stgl_fout(x, (float)x->x_on);
 }
 
+    /* "size w [h]": one argument makes it square */
 static void stgl_size(t_stgl *x, t_symbol *s, int ac, t_atom *av)
 {
     x->x_gui.x_w = iemgui_clip_size((int)atom_getintarg(0, ac, av));
-    x->x_gui.x_h = x->x_gui.x_w;
+    x->x_gui.x_h = (ac > 1) ?
+        iemgui_clip_size((int)atom_getintarg(1, ac, av)) : x->x_gui.x_w;
     iemgui_size((void *)x, &x->x_gui);
 }
 
@@ -423,6 +425,7 @@ static void stgl_ff(t_stgl *x)
 
 SGUI_EXPORT void stgl_setup(void)
 {
+    sgui_banner();
     post("sgui: stgl loaded");
     stgl_class = class_new(gensym("tgl"), (t_newmethod)stgl_new,
                              (t_method)stgl_ff, sizeof(t_stgl), 0, A_GIMME, 0);

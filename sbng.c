@@ -45,10 +45,15 @@ static void sbng_draw_new(t_sbng *x, t_glist *glist)
     int ypos=text_ypix(&x->x_gui.x_obj, glist);
     t_canvas *canvas=glist_getcanvas(glist);
 
-    sys_vgui(".x%lx.c create rectangle %d %d %d %d -fill #%6.6x -tags %lxBNG\n",
+    sys_vgui(".x%lx.c create rectangle %d %d %d %d -fill #%6.6x -tags %lxBASE\n",
              canvas, xpos, ypos,
              xpos + x->x_gui.x_w, ypos + x->x_gui.x_h,
              x->x_gui.x_bcol, x);
+        /* the flash: a rectangle inset in the outline, like stgl's */
+    sys_vgui(".x%lx.c create rectangle %d %d %d %d -fill #%6.6x -tags %lxBNG\n",
+             canvas, xpos + 2, ypos + 2,
+             xpos + x->x_gui.x_w - 2, ypos + x->x_gui.x_h - 2,
+             x->x_flashed?x->x_gui.x_fcol:x->x_gui.x_bcol, x);
     sys_vgui(".x%lx.c create text %d %d -text {%s} -anchor w \
              -font {{%s} %d %s} -fill #%6.6x -tags %lxLABEL\n",
              canvas, xpos+x->x_gui.x_ldx,
@@ -73,10 +78,14 @@ static void sbng_draw_move(t_sbng *x, t_glist *glist)
     int ypos=text_ypix(&x->x_gui.x_obj, glist);
     t_canvas *canvas=glist_getcanvas(glist);
 
-    sys_vgui(".x%lx.c coords %lxBNG %d %d %d %d\n",
+    sys_vgui(".x%lx.c coords %lxBASE %d %d %d %d\n",
              canvas, x,
              xpos, ypos,
              xpos + x->x_gui.x_w, ypos + x->x_gui.x_h);
+    sys_vgui(".x%lx.c coords %lxBNG %d %d %d %d\n",
+             canvas, x,
+             xpos + 2, ypos + 2,
+             xpos + x->x_gui.x_w - 2, ypos + x->x_gui.x_h - 2);
     sys_vgui(".x%lx.c coords %lxLABEL %d %d\n",
              canvas, x, xpos+x->x_gui.x_ldx, ypos+x->x_gui.x_ldy);
     if(!x->x_gui.x_fsf.x_snd_able)
@@ -95,6 +104,7 @@ static void sbng_draw_erase(t_sbng* x,t_glist* glist)
 {
     t_canvas *canvas=glist_getcanvas(glist);
 
+    sys_vgui(".x%lx.c delete %lxBASE\n", canvas, x);
     sys_vgui(".x%lx.c delete %lxBNG\n", canvas, x);
     sys_vgui(".x%lx.c delete %lxLABEL\n", canvas, x);
     if(!x->x_gui.x_fsf.x_snd_able)
@@ -111,7 +121,9 @@ static void sbng_draw_config(t_sbng* x,t_glist* glist)
              canvas, x, x->x_gui.x_font, x->x_gui.x_fontsize, sys_fontweight,
              x->x_gui.x_fsf.x_selected?IEM_GUI_COLOR_SELECTED:x->x_gui.x_lcol,
              strcmp(x->x_gui.x_lab->s_name, "empty")?x->x_gui.x_lab->s_name:"");
-    sys_vgui(".x%lx.c itemconfigure %lxBNG -fill #%6.6x\n", canvas, x, x->x_gui.x_bcol);
+    sys_vgui(".x%lx.c itemconfigure %lxBASE -fill #%6.6x\n", canvas, x, x->x_gui.x_bcol);
+    sys_vgui(".x%lx.c itemconfigure %lxBNG -fill #%6.6x\n", canvas, x,
+             x->x_flashed?x->x_gui.x_fcol:x->x_gui.x_bcol);
 }
 
 static void sbng_draw_io(t_sbng* x,t_glist* glist, int old_snd_rcv_flags)
@@ -123,13 +135,13 @@ static void sbng_draw_io(t_sbng* x,t_glist* glist, int old_snd_rcv_flags)
     if((old_snd_rcv_flags & IEM_GUI_OLD_SND_FLAG) && !x->x_gui.x_fsf.x_snd_able)
         sys_vgui(".x%lx.c create rectangle %d %d %d %d -tags %lxOUT%d\n",
              canvas, xpos, ypos + x->x_gui.x_h-1,
-             xpos, ypos + x->x_gui.x_h, x, 0);
+             xpos + IOWIDTH, ypos + x->x_gui.x_h, x, 0);
     if(!(old_snd_rcv_flags & IEM_GUI_OLD_SND_FLAG) && x->x_gui.x_fsf.x_snd_able)
         sys_vgui(".x%lx.c delete %lxOUT%d\n", canvas, x, 0);
     if((old_snd_rcv_flags & IEM_GUI_OLD_RCV_FLAG) && !x->x_gui.x_fsf.x_rcv_able)
         sys_vgui(".x%lx.c create rectangle %d %d %d %d -tags %lxIN%d\n",
              canvas, xpos, ypos,
-             xpos, ypos+1, x, 0);
+             xpos + IOWIDTH, ypos+1, x, 0);
     if(!(old_snd_rcv_flags & IEM_GUI_OLD_RCV_FLAG) && x->x_gui.x_fsf.x_rcv_able)
         sys_vgui(".x%lx.c delete %lxIN%d\n", canvas, x, 0);
 }
@@ -140,12 +152,12 @@ static void sbng_draw_select(t_sbng *x,t_glist *glist)
 
     if(x->x_gui.x_fsf.x_selected)
     {
-        sys_vgui(".x%lx.c itemconfigure %lxBNG -outline #%6.6x\n", canvas, x, IEM_GUI_COLOR_SELECTED);
+        sys_vgui(".x%lx.c itemconfigure %lxBASE -outline #%6.6x\n", canvas, x, IEM_GUI_COLOR_SELECTED);
         sys_vgui(".x%lx.c itemconfigure %lxLABEL -fill #%6.6x\n", canvas, x, IEM_GUI_COLOR_SELECTED);
     }
     else
     {
-        sys_vgui(".x%lx.c itemconfigure %lxBNG -outline #%6.6x\n", canvas, x, IEM_GUI_COLOR_NORMAL);
+        sys_vgui(".x%lx.c itemconfigure %lxBASE -outline #%6.6x\n", canvas, x, IEM_GUI_COLOR_NORMAL);
         sys_vgui(".x%lx.c itemconfigure %lxLABEL -fill #%6.6x\n", canvas, x, x->x_gui.x_lcol);
     }
 }
@@ -368,10 +380,12 @@ static void sbng_loadbang(t_sbng *x, t_floatarg action)
     }
 }
 
+    /* "size w [h]": one argument makes it square */
 static void sbng_size(t_sbng *x, t_symbol *s, int ac, t_atom *av)
 {
     x->x_gui.x_w = iemgui_clip_size((int)atom_getintarg(0, ac, av));
-    x->x_gui.x_h = x->x_gui.x_w;
+    x->x_gui.x_h = (ac > 1) ?
+        iemgui_clip_size((int)atom_getintarg(1, ac, av)) : x->x_gui.x_w;
     iemgui_size((void *)x, &x->x_gui);
 }
 
@@ -518,6 +532,7 @@ static void sbng_free(t_sbng *x)
 
 SGUI_EXPORT void sbng_setup(void)
 {
+    sgui_banner();
     post("sgui: sbng loaded");
     sbng_class = class_new(gensym("sbng"), (t_newmethod)sbng_new,
                               (t_method)sbng_free, sizeof(t_sbng), 0, A_GIMME, 0);

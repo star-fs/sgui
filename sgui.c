@@ -29,23 +29,21 @@ static int sgui_in_plugdata(void)
 
 SGUI_EXPORT void sgui_setup(void)
 {
-        /* PlugData draws svsl/shsl/stgl with its own sliders and toggle,
-        but has no widget for sbng/sknb and can't run their Tk drawing;
-        leave those names free for the pdlua versions (sbng.pd_lua,
-        sknb.pd_lua), which it draws natively */
+        /* PlugData draws svsl/shsl with its own native sliders; it can't
+        run the Tk drawing of sbng/sknb, and would draw stgl (class "tgl")
+        as its own square X toggle.  Leave those names free for the pdlua
+        versions (sbng/stgl/sknb.pd_lua), which it draws natively. */
     int plugdata = sgui_in_plugdata();
+    sgui_banner();
     if (plugdata)
-        post("sgui: PlugData detected, sbng/sknb come from *.pd_lua");
+        post("sgui: PlugData detected, sbng/stgl/sknb come from *.pd_lua");
     else sbng_setup();
     svsl_setup();
     shsl_setup();
-    stgl_setup();
     if (!plugdata)
+    {
+        stgl_setup();
         sknb_setup();
+    }
 
-    post("sgui by star morin");
-    post("Contact: star@autospkr.org");
-    post("sgui: version: 0.2");
-    post("sgui: compiled: " __DATE__);
-    post("");
 }
