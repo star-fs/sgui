@@ -5,30 +5,11 @@
 /* g_7_guis.c written by Thomas Musil (c) IEM KUG Graz Austria 2000-2001 */
 /* thanks to Miller Puckette, Guenther Geiger and Krzystof Czaja */
 
-/* 'svsl' gui object by Star Morin (c), based on g_hslider.c */
+/* 'shsl' gui object by Star Morin (c), based on g_hslider.c */
 
-#include "config.h"
+#include "sgui.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include "m_pd.h"
-#include "g_canvas.h"
-#include "t_tk.h"
-#include "g_all_guis.h"
-#include <math.h>
-
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#ifdef HAVE_IO_H
-#include <io.h>
-#endif
-
-
-/* ------------ shsl gui-horicontal slider ----------------------- */
+/* ------------ shsl gui-horizontal slider ----------------------- */
 
 t_widgetbehavior shsl_widgetbehavior;
 static t_class *shsl_class;
@@ -81,7 +62,7 @@ static void shsl_draw_new(t_shsl *x, t_glist *glist)
              ypos+x->x_gui.x_ldy,
              strcmp(x->x_gui.x_lab->s_name, "empty")?x->x_gui.x_lab->s_name:"",
              x->x_gui.x_font, x->x_gui.x_fontsize, sys_fontweight,
-			 x->x_gui.x_lcol, x);
+             x->x_gui.x_lcol, x);
 
     if(!x->x_gui.x_fsf.x_snd_able)
         sys_vgui(".x%lx.c create rectangle %d %d %d %d -tags %lxOUT%d\n",
@@ -528,10 +509,9 @@ static void *shsl_new(t_symbol *s, int argc, t_atom *argv)
     t_shsl *x = (t_shsl *)pd_new(shsl_class);
     int bflcol[]={-262144, -1, -1};
     int w=IEM_SL_DEFAULTSIZE, h=IEM_GUI_DEFAULTSIZE;
-    int lilo=0, ldx=-2, ldy=-8, f=0, v=0, steady=1;
+    int lilo=0, ldx=-2, ldy=-8, v=0, steady=1;
     int fs=10;
     double min=0.0, max=(double)(IEM_SL_DEFAULTSIZE-1);
-    char str[144];
 
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
@@ -612,13 +592,12 @@ static void shsl_free(t_shsl *x)
     gfxstub_deleteforkey(x);
 }
 
-void shsl_setup(void)
+SGUI_EXPORT void shsl_setup(void)
 {
+    post("sgui: shsl loaded");
     shsl_class = class_new(gensym("hsl"), (t_newmethod)shsl_new,
                               (t_method)shsl_free, sizeof(t_shsl), 0, A_GIMME, 0);
-#ifndef GGEE_HSLIDER_COMPATIBLE
     class_addcreator((t_newmethod)shsl_new, gensym("shsl"), A_GIMME, 0);
-#endif
     class_addbang(shsl_class,shsl_bang);
     class_addfloat(shsl_class,shsl_float);
     class_addmethod(shsl_class, (t_method)shsl_click, gensym("click"),

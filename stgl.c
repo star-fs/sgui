@@ -5,27 +5,9 @@
 /* g_7_guis.c written by Thomas Musil (c) IEM KUG Graz Austria 2000-2001 */
 /* thanks to Miller Puckette, Guenther Geiger and Krzystof Czaja */
 
-/* 'sknb' gui object by Star Morin (c), based on g_toggle.c */
+/* 'stgl' gui object by Star Morin (c), based on g_toggle.c */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include "m_pd.h"
-#include "g_canvas.h"
-#include "t_tk.h"
-#include "g_all_guis.h"
-#include <math.h>
-
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#ifdef HAVE_IO_H
-#include <io.h>
-#endif
+#include "sgui.h"
 
 /* --------------- stgl rectangular resizable toggle ------------------- */
 
@@ -42,7 +24,7 @@ typedef struct _stgl
 
 /* widget helper functions */
 
-void stgl_draw_update(t_stgl *x, t_glist *glist)
+static void stgl_draw_update(t_stgl *x, t_glist *glist)
 {
     if(glist_isvisible(glist))
     {
@@ -54,7 +36,7 @@ void stgl_draw_update(t_stgl *x, t_glist *glist)
     }
 }
 
-void stgl_draw_new(t_stgl *x, t_glist *glist)
+static void stgl_draw_new(t_stgl *x, t_glist *glist)
 {
     t_canvas *canvas=glist_getcanvas(glist);
     int xx=text_xpix(&x->x_gui.x_obj, glist), yy=text_ypix(&x->x_gui.x_obj, glist);
@@ -73,7 +55,7 @@ void stgl_draw_new(t_stgl *x, t_glist *glist)
              yy+x->x_gui.x_ldy,
              strcmp(x->x_gui.x_lab->s_name, "empty")?x->x_gui.x_lab->s_name:"",
              x->x_gui.x_font, x->x_gui.x_fontsize, sys_fontweight,
-			 x->x_gui.x_lcol, x);
+             x->x_gui.x_lcol, x);
     if(!x->x_gui.x_fsf.x_snd_able)
         sys_vgui(".x%lx.c create rectangle %d %d %d %d -tags %lxOUT%d\n",
              canvas, xx, yy + x->x_gui.x_h-1, xx + IOWIDTH, yy + x->x_gui.x_h, x, 0);
@@ -82,7 +64,7 @@ void stgl_draw_new(t_stgl *x, t_glist *glist)
              canvas, xx, yy, xx + IOWIDTH, yy+1, x, 0);
 }
 
-void stgl_draw_move(t_stgl *x, t_glist *glist)
+static void stgl_draw_move(t_stgl *x, t_glist *glist)
 {
     t_canvas *canvas=glist_getcanvas(glist);
     int xx=text_xpix(&x->x_gui.x_obj, glist), yy=text_ypix(&x->x_gui.x_obj, glist);
@@ -101,7 +83,7 @@ void stgl_draw_move(t_stgl *x, t_glist *glist)
              canvas, x, 0, xx, yy, xx + IOWIDTH, yy+1);
 }
 
-void stgl_draw_erase(t_stgl* x, t_glist* glist)
+static void stgl_draw_erase(t_stgl* x, t_glist* glist)
 {
     t_canvas *canvas=glist_getcanvas(glist);
 
@@ -114,7 +96,7 @@ void stgl_draw_erase(t_stgl* x, t_glist* glist)
         sys_vgui(".x%lx.c delete %lxIN%d\n", canvas, x, 0);
 }
 
-void stgl_draw_config(t_stgl* x, t_glist* glist)
+static void stgl_draw_config(t_stgl* x, t_glist* glist)
 {
     t_canvas *canvas=glist_getcanvas(glist);
 
@@ -128,7 +110,7 @@ void stgl_draw_config(t_stgl* x, t_glist* glist)
              x->x_on?x->x_gui.x_fcol:x->x_gui.x_bcol);
 }
 
-void stgl_draw_io(t_stgl* x, t_glist* glist, int old_snd_rcv_flags)
+static void stgl_draw_io(t_stgl* x, t_glist* glist, int old_snd_rcv_flags)
 {
     int xpos=text_xpix(&x->x_gui.x_obj, glist);
     int ypos=text_ypix(&x->x_gui.x_obj, glist);
@@ -149,7 +131,7 @@ void stgl_draw_io(t_stgl* x, t_glist* glist, int old_snd_rcv_flags)
         sys_vgui(".x%lx.c delete %lxIN%d\n", canvas, x, 0);
 }
 
-void stgl_draw_select(t_stgl* x, t_glist* glist)
+static void stgl_draw_select(t_stgl* x, t_glist* glist)
 {
     t_canvas *canvas=glist_getcanvas(glist);
 
@@ -362,11 +344,9 @@ static void *stgl_new(t_symbol *s, int argc, t_atom *argv)
     int bflcol[]={-262144, -1, -1};
     int w=IEM_GUI_DEFAULTSIZE;
     int h=IEM_GUI_DEFAULTSIZE;
-    int f=0;
     int ldx=17, ldy=7;
     int fs=10;
     float on=0.0, nonzero=1.0;
-    char str[144];
 
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
@@ -381,7 +361,6 @@ static void *stgl_new(t_symbol *s, int argc, t_atom *argv)
        &&IS_A_FLOAT(argv,8)&&IS_A_FLOAT(argv,9)&&IS_A_FLOAT(argv,10)
        &&IS_A_FLOAT(argv,11)&&IS_A_FLOAT(argv,12)&&IS_A_FLOAT(argv,13))
     {
-        post("in stgl load, w=%d, h=%d", (int)atom_getintarg(0, argc, argv), (int)atom_getintarg(1, argc, argv));
         w = (int)atom_getintarg(0, argc, argv);
         h = (int)atom_getintarg(1, argc, argv);
         iem_inttosymargs(&x->x_gui.x_isa, atom_getintarg(2, argc, argv));
@@ -439,8 +418,9 @@ static void stgl_ff(t_stgl *x)
     gfxstub_deleteforkey(x);
 }
 
-void stgl_setup(void)
+SGUI_EXPORT void stgl_setup(void)
 {
+    post("sgui: stgl loaded");
     stgl_class = class_new(gensym("tgl"), (t_newmethod)stgl_new,
                              (t_method)stgl_ff, sizeof(t_stgl), 0, A_GIMME, 0);
     class_addcreator((t_newmethod)stgl_new, gensym("stgl"), A_GIMME, 0);

@@ -1,32 +1,30 @@
-#include "m_pd.h"
+/* sgui - replacement IEM-style GUI objects for Pure Data
+ *
+ * sgui.c - external entry point.
+ *
+ * Registers the sgui objects in one shared object:
+ *   sbng  resizable "smart" bang
+ *   svsl  vertical slider   (also shadows pd's built-in "vsl")
+ *   shsl  horizontal slider (also shadows pd's built-in "hsl")
+ *   stgl  toggle            (also shadows pd's built-in "tgl")
+ *   sknb  rotary knob
+ *
+ * by Star Morin (c), star@autospkr.org
+ */
 
-typedef struct _sgui
+#include "sgui.h"
+
+SGUI_EXPORT void sgui_setup(void)
 {
-     t_object x_obj;
-} t_sgui;
-
-static t_class* sgui_class;
-
-
-
-static void* sgui_new(t_symbol* s) {
-    t_sgui *x = (t_sgui *)pd_new( sgui_class);
-    return (x);
-}
-
- void sgui_setup(void) 
-{
-    sgui_class = class_new(gensym("sgui"), (t_newmethod)sgui_new, 0,
-    	sizeof(t_sgui), 0, (t_atomtype)0);
-
     sbng_setup();
-	  svsl_setup();
-	  shsl_setup();
-	  stgl_setup();
-	  skng_setup();
-     post("sgui by star morin");
-     post("Contact: star@autospkr.org");
-     post("sgui: version:  0.1 ");
-     post("sgui: compiled: "__DATE__);
-	 post("");
+    svsl_setup();
+    shsl_setup();
+    stgl_setup();
+    sknb_setup();
+
+    post("sgui by star morin");
+    post("Contact: star@autospkr.org");
+    post("sgui: version: 0.2");
+    post("sgui: compiled: " __DATE__);
+    post("");
 }

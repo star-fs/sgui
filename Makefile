@@ -1,64 +1,93 @@
+# sgui - replacement IEM-style GUI objects for Pure Data
+#
+# Builds self-contained externals against the *public* m_pd.h.  No pd
+# internal headers are needed.
+#
+# Targets:
+#   sgui.pd_linux  - all objects in one file (load explicitly:
+#                    "pd -lib sgui" or a "lib" message; setup = sgui_setup)
+#   sbng/svsl/shsl/stgl/sknb.pd_linux - one file per object name.  pd loads
+#                    these on demand when it meets the object in a patch
+#                    (each entry point registers its own object; svsl also
+#                    shadows the built-in "vsl", shsl "hsl", stgl "tgl").
+#
+#   make            build all
+#   make install    install to ~/.pd/sgui (plus help files)
+#   make clean
+#
+# m_pd.h is found in this order:
+#   1. $(PD_SRC)    (environment or make variable: path to a pd source tree)
+#   2. /usr/include/pd
+#   3. /usr/local/include/pd
+#   4. ./pd/src
+# You can also override the include dir directly: make PDINC=/path/to/dir
+# (PDINC must be the directory that *contains* m_pd.h)
+
 EXT = pd_linux
-DEFS = 
-CC = gcc
-CXX = c++
-LD = ld
-AFLAGS = 
-LFLAGS = -export_dynamic  -shared -O2 -Wall -fPIC -DPD
-WFLAGS =
-IFLAGS = -I./include -I../../pd/src
-INSTALL_PREFIX=/usr/lib
+CC = cc
+# -fvisibility=hidden: keep the vendored iemgui_* functions out of the
+# exported symbol table (vanilla pd exports its own iemgui_* with a
+# different struct layout; exported duplicates would interpose on ours)
+CFLAGS = -O2 -g -Wall -fPIC -fvisibility=hidden -DPD -I$(PDINC)
+LIBS = -lm
+SOURCES = sgui.c sgui_iem.c sbng.c svsl.c shsl.c stgl.c sknb.c
+OBJECTS = $(SOURCES:.c=.o)
+ONDEMAND = sbng svsl shsl stgl sknb
+TARGETS = sgui.$(EXT) $(addsuffix .$(EXT),$(ONDEMAND))
 
-.SUFFIXES: .$(EXT)
+UNAME_S := $(shell uname -s)
+ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
+EXT = pd_win.dll
+LDFLAGS = -shared
+else ifeq ($(UNAME_S),Darwin)
+EXT = pd_darwin
+LDFLAGS = -bundle -undefined dynamic_lookup
+else
+LDFLAGS = -shared
+endif
 
-PDCFLAGS = -g -O2 $(DEFS) $(IFLAGS) $(WFLAGS) $(LFLAGS) $(AFLAGS) -DVERSION=$(VERSION)
-CFLAGS = -g -O2 $(DEFS) $(IFLAGS) $(WFLAGS) -DVERSION=$(VERSION)
-CXXFLAGS = $(CFLAGS)
+ifeq ($(origin PDINC),undefined)
+  ifeq ($(PD_SRC),)
+    ifeq ($(wildcard /usr/include/pd/m_pd.h),)
+      ifeq ($(wildcard /usr/local/include/pd/m_pd.h),)
+        ifeq ($(wildcard ./pd/src/m_pd.h),)
+          PDINC :=
+        else
+          PDINC := ./pd/src
+        endif
+      else
+        PDINC := /usr/local/include/pd
+      endif
+    else
+      PDINC := /usr/include/pd
+    endif
+  else
+    PDINC := $(PD_SRC)
+  endif
+endif
 
-LIBS = -lm -lc 
-SOURCES =  sgui.c sbng.c svsl.c shsl.c stgl.c sknb.c
-TARGETS = $(SOURCES:.c=.$(EXT)) 
+ifeq ($(wildcard $(PDINC)/m_pd.h),)
+  $(error could not find m_pd.h - set PD_SRC to your pd source tree, or PDINC to the dir containing m_pd.h)
+endif
 
-all: $(TARGETS) 
+all: $(TARGETS)
 
-sbng:
-	cc -c $(CFLAGS) -DPD sbng.c
-	$(LD) -export_dynamic  -shared -o sbng.pd_linux *.o $(LIBS)
-	strip --strip-unneeded sbng.pd_linux
+sgui.$(EXT): $(OBJECTS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
 
-sknb:
-	cc -c $(CFLAGS) -DPD sknb.c
-	$(LD) -export_dynamic  -shared -o sknb.pd_linux *.o $(LIBS)
-	strip --strip-unneeded sknb.pd_linux
+# per-object externals: pd dlopens <name>.pd_linux and calls <name>_setup,
+# so each file only needs its own object plus the shared iemgui helpers
+# (the explicit sgui.$(EXT) rule above takes precedence for that target)
+%.$(EXT): %.o sgui_iem.o
+	$(CC) $(LDFLAGS) -o $@ $< sgui_iem.o $(LIBS)
 
-svsl:
-	cc -c $(CFLAGS) -DPD svsl.c
-	$(LD) -export_dynamic  -shared -o svsl.pd_linux *.o $(LIBS)
-	strip --strip-unneeded svsl.pd_linux
+%.o: %.c sgui.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-shsl:
-	cc -c $(CFLAGS) -DPD sshl.c
-	$(LD) -export_dynamic  -shared -o shsl.pd_linux *.o $(LIBS)
-	strip --strip-unneeded shsl.pd_linux
+install: $(TARGETS)
+	install -d $(HOME)/.pd/sgui
+	install -m 644 $(TARGETS) $(HOME)/.pd/sgui
+	install -m 644 help/*.pd $(HOME)/.pd/sgui
 
-stgl:
-	cc -c $(CFLAGS) -DPD stgl.c
-	$(LD) -export_dynamic  -shared -o stgl.pd_linux *.o $(LIBS)
-	strip --strip-unneeded stgl.pd_linux
-
-clean::
-	-rm *.$(EXT) *.o 
-
-.c.o:
-	$(CC) -c -o $@ $(CFLAGS) -DPD $*.c
-
-# cp $@ $*_stat.o
-
-.o.pd_linux:
-	$(CC) -o $@ $(PDCFLAGS) -DPD $*.o
-
-install::
-	install -d $(INSTALL_PREFIX)/pd/extra
-	install -m 644 *.$(EXT) $(INSTALL_PREFIX)/pd/extra
-	install -m 644 sgui.pd_linux $(INSTALL_PREFIX)/pd/extra
-	install -m 644 help/*.pd $(INSTALL_PREFIX)/pd/doc/5.reference
+clean:
+	rm -f $(OBJECTS) $(TARGETS) sgui.pd_linux sgui.pd_darwin sgui.pd_win.dll

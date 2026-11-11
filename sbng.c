@@ -7,32 +7,12 @@
 
 /* sbng - by Star Morin (c), based on g_bang.c */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include "m_pd.h"
-#include "g_canvas.h"
-#include "t_tk.h"
-#include "g_all_guis.h"
-#include <math.h>
-
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#ifdef HAVE_IO_H
-#include <io.h>
-#endif
-
+#include "sgui.h"
 
 /* ------------ sbng rectangular resizable bang ----------------------- */
 
 t_widgetbehavior sbng_widgetbehavior;
 static t_class *sbng_class;
-t_symbol *iemgui_key_sym=0;   /* taken from g_all_guis.c */
 
 typedef struct _sbng
 {
@@ -75,10 +55,10 @@ static void sbng_draw_new(t_sbng *x, t_glist *glist)
              ypos+x->x_gui.x_ldy,
              strcmp(x->x_gui.x_lab->s_name, "empty")?x->x_gui.x_lab->s_name:"",
              x->x_gui.x_font, x->x_gui.x_fontsize, sys_fontweight,
-			 x->x_gui.x_lcol, x);
+             x->x_gui.x_lcol, x);
     if(!x->x_gui.x_fsf.x_snd_able)
         sys_vgui(".x%lx.c create rectangle %d %d %d %d -tags %lxOUT%d\n",
-             canvas, xpos, 
+             canvas, xpos,
              ypos + x->x_gui.x_h-1, xpos + IOWIDTH,
              ypos + x->x_gui.x_h, x, 0);
     if(!x->x_gui.x_fsf.x_rcv_able)
@@ -154,7 +134,7 @@ static void sbng_draw_io(t_sbng* x,t_glist* glist, int old_snd_rcv_flags)
         sys_vgui(".x%lx.c delete %lxIN%d\n", canvas, x, 0);
 }
 
-static void sbng_draw_select(t_sbng* x,t_glist* glist)
+static void sbng_draw_select(t_sbng *x,t_glist *glist)
 {
     t_canvas *canvas=glist_getcanvas(glist);
 
@@ -281,7 +261,7 @@ static void sbng_set(t_sbng *x)    /* bugfix */
     clock_delay(x->x_clock_hld, x->x_flashtime_hold);
 }
 
-static void sbng_bout1(t_sbng *x)/*wird nur mehr gesendet, wenn snd != rcv*/
+static void sbng_bout1(t_sbng *x)
 {
     if(!x->x_gui.x_fsf.x_put_in2out)
     {
@@ -293,7 +273,7 @@ static void sbng_bout1(t_sbng *x)/*wird nur mehr gesendet, wenn snd != rcv*/
         pd_bang(x->x_gui.x_snd->s_thing);
 }
 
-static void sbng_bout2(t_sbng *x)/*wird immer gesendet, wenn moeglich*/
+static void sbng_bout2(t_sbng *x)
 {
     if(!x->x_gui.x_fsf.x_put_in2out)
     {
@@ -305,7 +285,7 @@ static void sbng_bout2(t_sbng *x)/*wird immer gesendet, wenn moeglich*/
         pd_bang(x->x_gui.x_snd->s_thing);
 }
 
-static void sbng_bang(t_sbng *x)/*wird nur mehr gesendet, wenn snd != rcv*/
+static void sbng_bang(t_sbng *x)
 {
     if(!x->x_gui.x_isa.x_locked)
     {
@@ -314,7 +294,7 @@ static void sbng_bang(t_sbng *x)/*wird nur mehr gesendet, wenn snd != rcv*/
     }
 }
 
-static void sbng_bang2(t_sbng *x)/*wird immer gesendet, wenn moeglich*/
+static void sbng_bang2(t_sbng *x)
 {
     if(!x->x_gui.x_isa.x_locked)
     {
@@ -456,7 +436,6 @@ static void *sbng_new(t_symbol *s, int argc, t_atom *argv)
     int fs=10;
     int ftbreak=IEM_BNG_DEFAULTBREAKFLASHTIME,
         fthold=IEM_BNG_DEFAULTHOLDFLASHTIME;
-    char str[144];
 
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
@@ -521,7 +500,6 @@ static void *sbng_new(t_symbol *s, int argc, t_atom *argv)
     x->x_clock_brk = clock_new(x, (t_method)sbng_tick_brk);
     x->x_clock_lck = clock_new(x, (t_method)sbng_tick_lck);
     outlet_new(&x->x_gui.x_obj, &s_bang);
-    post("in sbng_new, symbod data: %s %s %s", x->x_gui.x_snd->s_name, x->x_gui.x_rcv->s_name, x->x_gui.x_font);
     return (x);
 }
 
@@ -535,13 +513,17 @@ static void sbng_free(t_sbng *x)
     gfxstub_deleteforkey(x);
 }
 
-void sbng_setup(void)
+SGUI_EXPORT void sbng_setup(void)
 {
+    post("sgui: sbng loaded");
     sbng_class = class_new(gensym("sbng"), (t_newmethod)sbng_new,
                               (t_method)sbng_free, sizeof(t_sbng), 0, A_GIMME, 0);
-    class_addcreator((t_newmethod)sbng_new, gensym("sbng"), A_GIMME, 0);
     class_addbang(sbng_class,sbng_bang);
     class_addfloat(sbng_class,sbng_float);
+    class_addsymbol(sbng_class,sbng_symbol);
+    class_addpointer(sbng_class,sbng_pointer);
+    class_addlist(sbng_class,sbng_list);
+    class_addanything(sbng_class,sbng_anything);
     class_addmethod(sbng_class, (t_method)sbng_click, gensym("click"),
                     A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, 0);
     class_addmethod(sbng_class, (t_method)sbng_motion, gensym("motion"),
@@ -552,6 +534,7 @@ void sbng_setup(void)
     class_addmethod(sbng_class, (t_method)sbng_size, gensym("size"), A_GIMME, 0);
     class_addmethod(sbng_class, (t_method)sbng_delta, gensym("delta"), A_GIMME, 0);
     class_addmethod(sbng_class, (t_method)sbng_pos, gensym("pos"), A_GIMME, 0);
+    class_addmethod(sbng_class, (t_method)sbng_flashtime, gensym("flashtime"), A_GIMME, 0);
     class_addmethod(sbng_class, (t_method)sbng_color, gensym("color"), A_GIMME, 0);
     class_addmethod(sbng_class, (t_method)sbng_send, gensym("send"), A_DEFSYM, 0);
     class_addmethod(sbng_class, (t_method)sbng_receive, gensym("receive"), A_DEFSYM, 0);

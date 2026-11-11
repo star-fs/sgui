@@ -7,26 +7,7 @@
 
 /* 'svsl' gui object by Star Morin (c), based on g_vslider.c */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include "m_pd.h"
-#include "g_canvas.h"
-#include "t_tk.h"
-#include "g_all_guis.h"
-#include <math.h>
-
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#ifdef HAVE_IO_H
-#include <io.h>
-#endif
-
+#include "sgui.h"
 
 /* ------------ svsl gui-vertical slider ----------------------- */
 
@@ -81,8 +62,8 @@ static void svsl_draw_new(t_svsl *x, t_glist *glist)
              -font {{%s} %d %s} -fill #%6.6x -tags %lxLABEL\n",
              canvas, xpos+x->x_gui.x_ldx, ypos+x->x_gui.x_ldy,
              strcmp(x->x_gui.x_lab->s_name, "empty")?x->x_gui.x_lab->s_name:"",
-             x->x_gui.x_font, x->x_gui.x_fontsize, sys_fontweight, 
-			 x->x_gui.x_lcol, x);
+             x->x_gui.x_font, x->x_gui.x_fontsize, sys_fontweight,
+             x->x_gui.x_lcol, x);
     if(!x->x_gui.x_fsf.x_snd_able)
         sys_vgui(".x%lx.c create rectangle %d %d %d %d -tags %lxOUT%d\n",
              canvas,
@@ -143,7 +124,7 @@ static void svsl_draw_config(t_svsl* x,t_glist* glist)
     t_canvas *canvas=glist_getcanvas(glist);
 
     sys_vgui(".x%lx.c itemconfigure %lxLABEL -font {{%s} %d %s} -fill #%6.6x -text {%s} \n",
-             canvas, x, x->x_gui.x_font, x->x_gui.x_fontsize, sys_fontweight, 
+             canvas, x, x->x_gui.x_font, x->x_gui.x_fontsize, sys_fontweight,
              x->x_gui.x_fsf.x_selected?IEM_GUI_COLOR_SELECTED:x->x_gui.x_lcol,
              strcmp(x->x_gui.x_lab->s_name, "empty")?x->x_gui.x_lab->s_name:"");
     sys_vgui(".x%lx.c itemconfigure %lxVSL -fill #%6.6x\n", canvas,
@@ -527,10 +508,9 @@ static void *svsl_new(t_symbol *s, int argc, t_atom *argv)
     t_svsl *x = (t_svsl *)pd_new(svsl_class);
     int bflcol[]={-262144, -1, -1};
     int w=IEM_GUI_DEFAULTSIZE, h=IEM_SL_DEFAULTSIZE;
-    int lilo=0, f=0, ldx=0, ldy=-9;
+    int lilo=0, ldx=0, ldy=-9;
     int fs=10, v=0, steady=1;
     double min=0.0, max=(double)(IEM_SL_DEFAULTSIZE-1);
-    char str[144];
 
     iem_inttosymargs(&x->x_gui.x_isa, 0);
     iem_inttofstyle(&x->x_gui.x_fsf, 0);
@@ -605,15 +585,12 @@ static void svsl_free(t_svsl *x)
     gfxstub_deleteforkey(x);
 }
 
-void svsl_setup(void)
+SGUI_EXPORT void svsl_setup(void)
 {
+    post("sgui: svsl loaded");
     svsl_class = class_new(gensym("vsl"), (t_newmethod)svsl_new,
                               (t_method)svsl_free, sizeof(t_svsl), 0, A_GIMME, 0);
-
-#ifndef GGEE_HSLIDER_COMPATIBLE
     class_addcreator((t_newmethod)svsl_new, gensym("svsl"), A_GIMME, 0);
-#endif
-
     class_addbang(svsl_class,svsl_bang);
     class_addfloat(svsl_class,svsl_float);
     class_addmethod(svsl_class, (t_method)svsl_click, gensym("click"),
