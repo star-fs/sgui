@@ -62,7 +62,17 @@ PlugData:
   Differences from the C objects:
   * labels are cut off at the object's edge, because pdlua clips drawing to
     the object box;
-  * there's no properties dialog and no `delta`/`pos` messages;
+  * the properties (size, range, log/steady/init, colours, label,
+    send/receive) are in PlugData's properties panel only with a pdlua that
+    has the properties API, which PlugData 0.9.3 and older lack (it's on
+    PlugData's development branch); until then, set them with the messages,
+    or open the object's help (right-click → Help): it has an example
+    instance and a panel of number/symbol/toggle boxes that set every
+    property on it, with ELSE's `[colors]` pickers for the colours (ELSE
+    comes with PlugData; in vanilla, without ELSE, they can't be created and
+    the object's own properties dialog is the easier route); copy the
+    configured example into your patch;
+  * there are no `delta`/`pos` messages;
   * the knob has no shift-drag fine tuning (pdlua doesn't report modifier
     keys);
   * with init on, the initial output happens just after creation rather
@@ -188,7 +198,8 @@ patch file so pd has it queued before it opens the file.)
 * `sbng.c` `svsl.c` `shsl.c` `stgl.c` `sknb.c` — the objects.
 * `*.pd_lua` — pdlua versions of the objects (for PlugData); `svsl.pd_lua`
   and `shsl.pd_lua` are the same code apart from their orientation settings.
-* `help/*.pd` — help/patch files.
+* `help/*.pd` — help patches; `help/make-help.py` generates the five object
+  help patches (run it after changing them there, not the `.pd` files).
 
 ## License
 
