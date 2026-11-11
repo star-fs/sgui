@@ -110,6 +110,7 @@ void sgui_banner(void)
     post("");
     post("");
     post("sgui (c) 2009-2026 star morin");
+    post("sgui: objects: sbng stgl sknb svsl shsl");
     post("sgui: version: 0.2");
     post("sgui: compiled: " __DATE__);
     post("");
