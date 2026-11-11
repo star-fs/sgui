@@ -137,6 +137,10 @@ def build(obj):
               "(right-click > Properties) does all this too. the color pickers "
               "are ELSE's [colors] for PlugData (which bundles ELSE): without "
               "ELSE they can't be created - type #rrggbb colors instead.", 32)
+    main.text(30, out_y + 240, "PlugData doesn't show the properties of pdlua "
+              "objects (which these are in PlugData) in its inspector yet: "
+              "configure the example here, then copy and paste it from this "
+              "help patch into yours.", 32)
 
     y = top
     main.text(LABEL_X, y - 24, "properties (sent to the example as messages):")
@@ -196,7 +200,7 @@ def build(obj):
             row_logic(key, kind, len(defaults), message, defaults)
         y += ROW
 
-    sub_y = max(y + 10, out_y + 230)
+    sub_y = max(y + 10, out_y + 330)
     main.text(LABEL_X, sub_y, "the messages are built in here:")
     width = max(lx[0] + 40, 600)
     height = max(ly[0] + 20, 220)

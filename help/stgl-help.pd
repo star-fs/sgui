@@ -1,4 +1,4 @@
-#N canvas 120 80 730 517 12;
+#N canvas 120 80 730 599 12;
 #X text 20 10 stgl - a toggle drawn as a rectangle in a box;
 #X text 20 32 outputs its nonzero value or 0 when clicked.;
 #X text 20 50 everything here is also a message you can send it.;
@@ -11,6 +11,7 @@
 #X connect 6 0 7 0;
 #X text 30 254 set it up with the boxes on the right \, then copy this stgl into your patch: it keeps its settings., f 32;
 #X text 30 329 in pd-vanilla the object's own properties dialog (right-click > Properties) does all this too. the color pickers are ELSE's [colors] for PlugData (which bundles ELSE): without ELSE they can't be created - type #rrggbb colors instead., f 32;
+#X text 30 459 PlugData doesn't show the properties of pdlua objects (which these are in PlugData) in its inspector yet: configure the example here \, then copy and paste it from this help patch into yours., f 32;
 #X text 290 125 properties (sent to the example as messages):;
 #X text 290 149 size (w h);
 #X floatatom 440 149 6 0 0 0 - \$0-size-1-set \$0-size-1;
@@ -37,11 +38,11 @@
 #X restore 440 291 pd pick;
 #X f 30;
 #X obj 440 261 else/colors;
-#X connect 24 0 23 0;
+#X connect 25 0 24 0;
 #X obj 527 261 else/colors;
-#X connect 25 0 23 1;
+#X connect 26 0 24 1;
 #X obj 614 261 else/colors;
-#X connect 26 0 23 2;
+#X connect 27 0 24 2;
 #X text 290 317 label;
 #X symbolatom 440 317 9 0 0 0 - \$0-label-1-set \$0-label-1;
 #X text 290 345 label x y;
@@ -54,7 +55,7 @@
 #X symbolatom 440 401 9 0 0 0 - \$0-send-1-set \$0-send-1;
 #X text 290 429 receive symbol;
 #X symbolatom 440 429 9 0 0 0 - \$0-receive-1-set \$0-receive-1;
-#X text 290 467 the messages are built in here:;
+#X text 290 549 the messages are built in here:;
 #N canvas 100 100 1770 850 logic 0;
 #X obj 20 20 loadbang;
 #X msg 20 60 set 15;
@@ -206,4 +207,4 @@
 #X connect 74 0 75 0;
 #X obj 1560 110 s \$0-sgui;
 #X connect 75 0 76 0;
-#X restore 530 467 pd logic;
+#X restore 530 549 pd logic;
