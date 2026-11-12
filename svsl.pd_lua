@@ -534,9 +534,12 @@ end
 
 -- drawing (= svsl_draw_new): the background box, and a solid bar in the
 -- foreground color from the minimum end to the current value, inset BORDER
--- pixels so a border of background color shows around it
+-- pixels so a border of background color shows around it.  The C object
+-- insets 1: Tk centres the outline on the box edge, so the bar's first pixel
+-- is already clear of it.  pdlua strokes the outline inside the box (pixel
+-- 0), so the bar starts at 2 to leave the same 1-pixel background border.
 
-local BORDER = 1
+local BORDER = 2
 
 local function rgb(c)
     return (c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff
